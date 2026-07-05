@@ -23,7 +23,9 @@ def cmd_serve(args: argparse.Namespace) -> int:
 
 
 def cmd_login(args: argparse.Namespace) -> int:
-    return _not_implemented("phase 1: auth")
+    from .login import run_login
+
+    return run_login(args.config, status_only=args.status, logout=args.logout)
 
 
 def cmd_sync(args: argparse.Namespace) -> int:
