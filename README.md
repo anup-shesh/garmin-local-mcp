@@ -160,15 +160,50 @@ If Garmin breaks the unofficial API again (it has before):
 1. **Everything analytical keeps working.** All query, correlation, baseline,
    anomaly, and gap tools run on your already-synced local history. Only new
    syncs pause.
-2. **Keep ingesting without auth.** In Garmin Connect, use "Export Wellness
-   Data" to download a daily FIT bundle, then run
-   `garmin-local-mcp import-fit <folder>`. This decodes the bundle locally
-   with zero authentication and fills the gap days. FIT-sourced rows never
-   overwrite API-sourced rows (unless you pass `--force`).
+2. **Keep ingesting without auth.** Download a daily FIT bundle from the
+   Garmin Connect website and import it locally (exact steps below).
+   `garmin-local-mcp import-fit <folder>` decodes the bundle with zero
+   authentication and fills the gap days. FIT-sourced rows never overwrite
+   API-sourced rows (unless you pass `--force`).
 3. **Resume when the community catches up.** Watch the
    [python-garminconnect](https://github.com/cyberjunky/python-garminconnect)
    project for a fix, upgrade, and run `garmin-local-mcp sync` again. Thanks
    to resumable sync state, it picks up exactly where it stopped.
+
+### Downloading a wellness bundle, step by step
+
+1. Sign in at [connect.garmin.com](https://connect.garmin.com) in any
+   browser.
+2. Go directly to
+   **<https://connect.garmin.com/app/settings/accountInformation>**
+   (or click your avatar in the top-right corner, then **Settings**, then
+   **Account Information** in the left sidebar).
+3. Scroll to the bottom of the page, to the section titled
+   **Export Wellness Data** ("Download your wellness FIT files from a
+   specific day. This includes data such as steps, sleep, stress, HRV and
+   more.").
+4. Pick a date in the **Date** field and click **Export**. Your browser
+   downloads a small zip for that one day, containing roughly 12 to 15
+   binary `.fit` files (`*_WELLNESS.fit`, `*_SLEEP_DATA.fit`,
+   `*_HRV_STATUS.fit`, `*_SKIN_TEMP.fit`, `*_METRICS.fit`, and similar).
+5. Unzip it into a folder and run:
+
+   ```
+   garmin-local-mcp import-fit "path/to/unzipped/folder"
+   ```
+
+6. Repeat for each missing day (one bundle per date). The `gaps` tool or
+   `garmin-local-mcp status` tells you which days need filling.
+
+Two things worth knowing:
+
+- **Overnight sleep belongs to the wake date.** To get last night's sleep,
+  export yesterday's date if you slept into this morning, i.e. the date you
+  woke up on.
+- This per-day export is instant and separate from Garmin's full account
+  export (the "Data Management" link on the same page), which is a bulk
+  archive that can take days to arrive by email and is not what
+  `import-fit` expects.
 
 ## Configuration
 
