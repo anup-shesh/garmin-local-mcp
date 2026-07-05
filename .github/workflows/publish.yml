@@ -1,4 +1,4 @@
-﻿# Publish to PyPI on release tag push (v*), using PyPI Trusted Publishing
+# Publish to PyPI on release tag push (v*), using PyPI Trusted Publishing
 # (OIDC). No API token secrets are stored in the repo.
 #
 # One-time setup on PyPI (https://pypi.org/manage/account/publishing/):
