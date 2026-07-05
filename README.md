@@ -1,3 +1,5 @@
+<!-- mcp-name: io.github.anup-shesh/garmin-local-mcp -->
+
 # garmin-local-mcp
 
 **Local-first Garmin data warehouse with an analysis-grade MCP server.**
