@@ -37,7 +37,24 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 
 def cmd_import_fit(args: argparse.Namespace) -> int:
-    return _not_implemented("phase 5: FIT import")
+    from . import db
+    from .importer import import_bundle
+
+    config = args.config
+    config.ensure_dirs()
+    conn = db.connect(config.db_path)
+    try:
+        report = import_bundle(conn, args.folder, force=args.force)
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    print(f"date: {report['date']}")
+    print(f"imported: {', '.join(report['imported']) or '(nothing)'}")
+    if report["skipped"]:
+        print(f"skipped: {', '.join(report['skipped'])}")
+    if report["quality_flags"]:
+        print(f"quality flags: {', '.join(report['quality_flags'])}")
+    return 0
 
 
 def cmd_reparse(args: argparse.Namespace) -> int:
@@ -80,6 +97,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("import-fit", help="Offline ingest of an exported wellness .fit bundle")
     p.add_argument("folder", help="Folder containing the exported .fit files")
+    p.add_argument(
+        "--force", action="store_true", help="Overwrite even rows sourced from the API"
+    )
     p.set_defaults(func=cmd_import_fit)
 
     p = sub.add_parser("reparse", help="Rebuild the database from raw snapshots (offline)")
