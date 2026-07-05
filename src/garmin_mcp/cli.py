@@ -13,13 +13,10 @@ from . import __version__
 from .config import load as load_config
 
 
-def _not_implemented(phase: str) -> int:
-    print(f"Not implemented yet ({phase}).", file=sys.stderr)
-    return 2
-
-
 def cmd_serve(args: argparse.Namespace) -> int:
-    return _not_implemented("phase 4: MCP server")
+    from .server import serve
+
+    return serve(args.config)
 
 
 def cmd_login(args: argparse.Namespace) -> int:
