@@ -56,3 +56,7 @@ select = ["E", "F", "W", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+filterwarnings = [
+    # fitparse internally uses datetime.utcfromtimestamp(); not ours to fix.
+    "ignore::DeprecationWarning:fitparse.*",
+]
