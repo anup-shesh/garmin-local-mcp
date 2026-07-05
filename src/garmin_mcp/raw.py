@@ -41,6 +41,19 @@ def write_snapshot(
     path.parent.mkdir(parents=True, exist_ok=True)
     data = json.dumps(payload, indent=1, sort_keys=True).encode("utf-8")
     path.write_bytes(data)
+    index_snapshot(conn, raw_dir, path, date, endpoint)
+    return True
+
+
+def index_snapshot(
+    conn: sqlite3.Connection,
+    raw_dir: Path,
+    path: Path,
+    date: str | None,
+    endpoint: str,
+) -> None:
+    """(Re-)register an existing snapshot file in raw_snapshots (used by reparse)."""
+    data = path.read_bytes()
     upsert(
         conn,
         "raw_snapshots",
@@ -54,7 +67,6 @@ def write_snapshot(
         },
         ("path",),
     )
-    return True
 
 
 def read_snapshot(path: Path) -> object:

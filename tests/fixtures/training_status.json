@@ -1,0 +1,51 @@
+{
+ "heatAltitudeAcclimationDTO": null,
+ "mostRecentTrainingStatus": {
+  "lastPrimarySyncDate": "2026-01-15",
+  "latestTrainingStatusData": {
+   "1234567890": {
+    "acuteTrainingLoadDTO": {
+     "acwrPercent": 55,
+     "acwrStatus": "OPTIMAL",
+     "acwrStatusFeedback": "FEEDBACK_2",
+     "dailyAcuteChronicWorkloadRatio": 1.1,
+     "dailyTrainingLoadAcute": 187,
+     "dailyTrainingLoadChronic": 165,
+     "maxTrainingLoadChronic": 280.0,
+     "minTrainingLoadChronic": 150.0
+    },
+    "calendarDate": "2026-01-15",
+    "deviceId": 1234567890,
+    "fitnessTrend": 2,
+    "primaryTrainingDevice": true,
+    "sinceDate": "2026-01-10",
+    "sport": "RUNNING",
+    "subSport": "GENERIC",
+    "trainingPaused": false,
+    "trainingStatus": 4,
+    "trainingStatusFeedbackPhrase": "PRODUCTIVE_1"
+   }
+  },
+  "recordedDevices": [
+   {
+    "category": 0,
+    "deviceId": 1234567890,
+    "deviceName": "Test Watch"
+   }
+  ],
+  "showSelector": false,
+  "userId": 100000001
+ },
+ "mostRecentVO2Max": {
+  "cycling": null,
+  "generic": {
+   "calendarDate": "2026-01-15",
+   "fitnessAge": null,
+   "maxMetCategory": 0,
+   "vo2MaxPreciseValue": 47.3,
+   "vo2MaxValue": 47.0
+  },
+  "userId": 100000001
+ },
+ "userId": 100000001
+}

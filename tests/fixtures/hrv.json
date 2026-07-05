@@ -1,0 +1,32 @@
+{
+ "endTimestampGMT": "2026-01-15T11:05:00.0",
+ "hrvReadings": [
+  {
+   "hrvValue": 42,
+   "readingTimeGMT": "2026-01-15T03:50:00.0",
+   "readingTimeLocal": "2026-01-14T22:50:00.0"
+  },
+  {
+   "hrvValue": 38,
+   "readingTimeGMT": "2026-01-15T03:55:00.0",
+   "readingTimeLocal": "2026-01-14T22:55:00.0"
+  }
+ ],
+ "hrvSummary": {
+  "baseline": {
+   "balancedLow": 34,
+   "balancedUpper": 41,
+   "lowUpper": 33,
+   "markerValue": 0.5
+  },
+  "calendarDate": "2026-01-15",
+  "createTimeStamp": "2026-01-15T09:10:00.000",
+  "feedbackPhrase": "HRV_BALANCED_5",
+  "lastNight5MinHigh": 58,
+  "lastNightAvg": 39,
+  "status": "BALANCED",
+  "weeklyAvg": 41
+ },
+ "startTimestampGMT": "2026-01-15T03:45:00.0",
+ "userProfilePk": 100000001
+}

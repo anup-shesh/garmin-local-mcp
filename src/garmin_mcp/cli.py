@@ -29,11 +29,88 @@ def cmd_login(args: argparse.Namespace) -> int:
 
 
 def cmd_sync(args: argparse.Namespace) -> int:
-    return _not_implemented("phase 3: sync engine")
+    from datetime import date, timedelta
+
+    from . import db, sync
+    from .auth import AuthError, get_client
+    from .endpoints import ENDPOINTS
+
+    config = args.config
+    config.ensure_dirs()
+    try:
+        end = args.end or sync.yesterday(config)
+        start = args.start or (date.fromisoformat(end) - timedelta(days=6)).isoformat()
+        for value in (start, end):  # validate before logging in
+            date.fromisoformat(value)
+        if start > end:
+            raise ValueError(f"start {start} is after end {end}")
+    except ValueError as e:
+        print(f"Invalid date: {e}", file=sys.stderr)
+        return 2
+
+    endpoints = None
+    if args.endpoints:
+        endpoints = [name.strip() for name in args.endpoints.split(",") if name.strip()]
+        unknown = [name for name in endpoints if name not in ENDPOINTS]
+        if unknown:
+            print(
+                f"Unknown endpoints: {', '.join(unknown)}. Known: {', '.join(ENDPOINTS)}",
+                file=sys.stderr,
+            )
+            return 2
+
+    try:
+        client = get_client(config.tokens_dir)
+    except AuthError as e:
+        print(f"{e} ({e.hint})", file=sys.stderr)
+        return 1
+
+    conn = db.connect(config.db_path)
+    report = sync.sync_range(
+        config, conn, client, start, end, endpoints=endpoints, force=args.force
+    )
+    print(f"sync {report['start']}..{report['end']}: "
+          f"{report['requests']} requests, {report['rows']} rows")
+    for name, s in report["endpoints"].items():
+        print(f"  {name}: ok={s['ok']} empty={s['empty']} skipped={s['skipped']} "
+              f"error={s['error']}")
+    if report.get("auth_error"):
+        err = report["auth_error"]
+        print(f"auth error: {err['error']} ({err['hint']})", file=sys.stderr)
+        return 1
+    if report["aborted"]:
+        print("aborted (rate limited); re-run the same command to resume", file=sys.stderr)
+        return 1
+    return 0
 
 
 def cmd_status(args: argparse.Namespace) -> int:
-    return _not_implemented("phase 3: sync engine")
+    from . import db
+
+    config = args.config
+    if not config.db_path.is_file():
+        print(f"No database yet at {config.db_path} - run: garmin-local-mcp sync")
+        return 0
+    conn = db.connect(config.db_path)
+    print(f"data dir: {config.data_dir}")
+    print("coverage:")
+    for table in ("daily_wellness", "sleep", "hrv", "training_status", "activities"):
+        first, last, count = conn.execute(
+            f"SELECT MIN(date), MAX(date), COUNT(*) FROM {table}"  # noqa: S608 - fixed names
+        ).fetchone()
+        span = f"{first} .. {last}" if count else "(no data)"
+        print(f"  {table:16} {count:6} rows  {span}")
+    errors = conn.execute(
+        "SELECT endpoint, date, last_error FROM sync_state "
+        "WHERE status='error' ORDER BY date, endpoint"
+    ).fetchall()
+    if errors:
+        print(f"pending sync errors ({len(errors)}):")
+        for row in errors:
+            print(f"  {row['date']} {row['endpoint']}: {row['last_error']}")
+    else:
+        print("pending sync errors: none")
+    return 0
 
 
 def cmd_import_fit(args: argparse.Namespace) -> int:
@@ -58,7 +135,15 @@ def cmd_import_fit(args: argparse.Namespace) -> int:
 
 
 def cmd_reparse(args: argparse.Namespace) -> int:
-    return _not_implemented("phase 2: store layer")
+    from . import db, sync
+
+    config = args.config
+    config.ensure_dirs()
+    conn = db.connect(config.db_path)
+    report = sync.reparse(config, conn)
+    if report["unknown_endpoints"]:
+        print(f"skipped {report['unknown_endpoints']} snapshots from unknown endpoints")
+    return 0
 
 
 def build_parser() -> argparse.ArgumentParser:

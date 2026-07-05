@@ -1,0 +1,116 @@
+{
+ "avgOvernightHrv": 39.0,
+ "avgSkinTempDeviationC": -0.3,
+ "avgSkinTempDeviationF": -0.5,
+ "bodyBatteryChange": 47,
+ "dailySleepDTO": {
+  "averageRespirationValue": 15.0,
+  "averageSpO2Value": 95.0,
+  "avgSleepStress": 21.0,
+  "awakeSleepSeconds": 1320,
+  "calendarDate": "2026-01-15",
+  "deepSleepSeconds": 5460,
+  "deviceRemCapable": true,
+  "highestRespirationValue": 18.0,
+  "highestSpO2Value": 99,
+  "id": 1000000000000,
+  "lightSleepSeconds": 14760,
+  "lowestRespirationValue": 12.0,
+  "lowestSpO2Value": 89,
+  "napTimeSeconds": 1200,
+  "remSleepSeconds": 5580,
+  "sleepEndTimestampGMT": 1768439100000,
+  "sleepEndTimestampLocal": 1768457100000,
+  "sleepScores": {
+   "overall": {
+    "qualifierKey": "GOOD",
+    "value": 82
+   },
+   "remPercentage": {
+    "qualifierKey": "GOOD",
+    "value": 21
+   },
+   "stress": {
+    "qualifierKey": "FAIR"
+   },
+   "totalDuration": {
+    "qualifierKey": "GOOD"
+   }
+  },
+  "sleepStartTimestampGMT": 1768412700000,
+  "sleepStartTimestampLocal": 1768430700000,
+  "sleepTimeSeconds": 26400,
+  "unmeasurableSleepSeconds": 0,
+  "userProfilePK": 100000001
+ },
+ "hrvData": [
+  {
+   "startGMT": 1768449000000,
+   "value": 42
+  },
+  {
+   "startGMT": 1768449300000,
+   "value": 38
+  }
+ ],
+ "hrvStatus": "BALANCED",
+ "remSleepData": true,
+ "restingHeartRate": 55,
+ "restlessMomentsCount": 31,
+ "skinTempCalibrationDays": 21,
+ "skinTempDataExists": true,
+ "sleepHeartRate": [
+  {
+   "startGMT": 1768448700000,
+   "value": 52
+  },
+  {
+   "startGMT": 1768448820000,
+   "value": 49
+  }
+ ],
+ "sleepLevels": [
+  {
+   "activityLevel": 1.0,
+   "endGMT": "2026-01-15T04:15:00.0",
+   "startGMT": "2026-01-15T03:45:00.0"
+  },
+  {
+   "activityLevel": 3.0,
+   "endGMT": "2026-01-15T05:45:00.0",
+   "startGMT": "2026-01-15T04:15:00.0"
+  }
+ ],
+ "sleepMovement": [
+  {
+   "activityLevel": 1.2,
+   "endGMT": "2026-01-15T03:46:00.0",
+   "startGMT": "2026-01-15T03:45:00.0"
+  },
+  {
+   "activityLevel": 0.4,
+   "endGMT": "2026-01-15T03:47:00.0",
+   "startGMT": "2026-01-15T03:46:00.0"
+  }
+ ],
+ "sleepRestlessMoments": [
+  {
+   "startGMT": 1768449720000,
+   "value": 1
+  },
+  {
+   "startGMT": 1768455060000,
+   "value": 2
+  }
+ ],
+ "sleepStress": [
+  {
+   "startGMT": 1768448700000,
+   "value": 18
+  },
+  {
+   "startGMT": 1768448880000,
+   "value": 14
+  }
+ ]
+}

@@ -103,13 +103,26 @@ def migrate(conn: sqlite3.Connection) -> None:
 
 
 def upsert(conn: sqlite3.Connection, table: str, row: dict, key_cols: tuple[str, ...]) -> None:
-    """Insert or update one row. Non-key columns are overwritten on conflict."""
+    """Insert or update one row. Non-key columns present in `row` are overwritten."""
+    upsert_partial(conn, table, row, key_cols)
+
+
+def upsert_partial(
+    conn: sqlite3.Connection, table: str, row: dict, key_cols: tuple[str, ...]
+) -> None:
+    """Insert or update one row, setting only the columns present in `row` on conflict.
+
+    Columns absent from `row` are left untouched, so several endpoints can each
+    contribute their slice of the same row (e.g. usersummary and sleep both
+    feeding daily_wellness) in any order without clobbering each other.
+    """
     cols = list(row)
     placeholders = ", ".join("?" for _ in cols)
     updates = ", ".join(f"{c}=excluded.{c}" for c in cols if c not in key_cols)
+    action = f"DO UPDATE SET {updates}" if updates else "DO NOTHING"
     sql = (
         f"INSERT INTO {table} ({', '.join(cols)}) VALUES ({placeholders}) "
-        f"ON CONFLICT({', '.join(key_cols)}) DO UPDATE SET {updates}"
+        f"ON CONFLICT({', '.join(key_cols)}) {action}"
     )
     with conn:
         conn.execute(sql, [row[c] for c in cols])

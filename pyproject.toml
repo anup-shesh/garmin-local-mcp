@@ -32,6 +32,8 @@ dependencies = [
     "mcp>=1.0",
     "garminconnect>=0.3.6,<0.4",
     "fitparse>=1.2",
+    # zoneinfo has no bundled tz database on Windows
+    "tzdata; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]

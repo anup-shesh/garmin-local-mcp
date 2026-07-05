@@ -1,0 +1,42 @@
+[
+ {
+  "activityId": 90000000001,
+  "activityName": "Morning Run",
+  "activityTrainingLoad": 74.5,
+  "activityType": {
+   "parentTypeId": 17,
+   "typeId": 1,
+   "typeKey": "running"
+  },
+  "aerobicTrainingEffect": 3.1,
+  "anaerobicTrainingEffect": 0.2,
+  "averageHR": 149.0,
+  "averageSpeed": 3.33,
+  "bmrCalories": 30.0,
+  "calories": 388.0,
+  "deviceId": 1234567890,
+  "distance": 5000.0,
+  "duration": 1500.0,
+  "elapsedDuration": 1512.0,
+  "elevationGain": 42.0,
+  "elevationLoss": 40.0,
+  "eventType": {
+   "typeId": 9,
+   "typeKey": "uncategorized"
+  },
+  "hasPolyline": false,
+  "lapCount": 5,
+  "manualActivity": false,
+  "maxHR": 171.0,
+  "maxSpeed": 4.1,
+  "moderateIntensityMinutes": 4,
+  "movingDuration": 1490.0,
+  "ownerId": 100000001,
+  "sportTypeId": 1,
+  "startTimeGMT": "2026-01-15 12:02:11",
+  "startTimeLocal": "2026-01-15 07:02:11",
+  "steps": 6100,
+  "trainingEffectLabel": "TEMPO",
+  "vigorousIntensityMinutes": 20
+ }
+]

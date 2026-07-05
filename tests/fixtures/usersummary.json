@@ -1,0 +1,23 @@
+{
+ "activeKilocalories": 350.0,
+ "averageSpo2": 96.0,
+ "averageStressLevel": 27,
+ "avgWakingRespirationValue": 14.0,
+ "bodyBatteryHighestValue": 88,
+ "bodyBatteryLowestValue": 24,
+ "calendarDate": "2026-01-15",
+ "floorsAscended": 12.62,
+ "floorsDescended": 10.11,
+ "lastSevenDaysAvgRestingHeartRate": 54,
+ "lowestSpo2": 90,
+ "maxHeartRate": 152,
+ "maxStressLevel": 91,
+ "minHeartRate": 48,
+ "moderateIntensityMinutes": 21,
+ "restingHeartRate": 55,
+ "totalDistanceMeters": 6400,
+ "totalKilocalories": 2100.0,
+ "totalSteps": 8200,
+ "userProfileId": 100000001,
+ "vigorousIntensityMinutes": 8
+}
