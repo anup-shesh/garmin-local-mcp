@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "garmin-local-mcp"
+version = "0.1.0"
+description = "Local-first Garmin data warehouse with an analysis-grade MCP server. Sync once, analyze forever - even when the API is down."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+authors = [{ name = "Anup Shesh" }]
+keywords = [
+    "garmin",
+    "garmin-connect",
+    "mcp",
+    "model-context-protocol",
+    "health",
+    "fitness",
+    "sqlite",
+    "quantified-self",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+dependencies = [
+    "mcp>=1.0",
+    "garminconnect>=0.3.6,<0.4",
+    "fitparse>=1.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.4"]
+
+[project.scripts]
+garmin-local-mcp = "garmin_mcp.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/anupshesh/garmin-local-mcp"
+Issues = "https://github.com/anupshesh/garmin-local-mcp/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/garmin_mcp"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
