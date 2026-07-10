@@ -18,3 +18,4 @@ tokens/
 # OS
 .DS_Store
 Thumbs.db
+*.mcpb

@@ -1,0 +1,16 @@
+# Excluded from the .mcpb bundle (everything the server does not need at runtime)
+.git
+.github
+.python
+.venv
+.pytest_cache
+.ruff_cache
+tests
+dist
+build
+*.mcpb
+uv.lock
+CHANGELOG.md
+server.json
+.mcpbignore
+**/__pycache__

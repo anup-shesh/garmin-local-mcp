@@ -71,14 +71,12 @@ where it left off.
 garmin-local-mcp sync --from 2026-01-01
 ```
 
-**3. Register the MCP server with Claude Code:**
+**3. Register the MCP server with your client** (see [Client setup](#client-setup)
+for Claude Desktop, Cursor, and other clients):
 
 ```
 claude mcp add --scope user garmin -- garmin-local-mcp serve
 ```
-
-Using a different MCP client? Any stdio-capable client works: configure it to
-run `garmin-local-mcp serve` as the server command.
 
 **4. Ask questions.** Examples of what Claude can now answer from your local
 warehouse in one or two tool calls:
@@ -86,6 +84,67 @@ warehouse in one or two tool calls:
 - "How does my sleep score correlate with next-day resting HR?"
 - "What were my anomalous HRV days this quarter?"
 - "Show weekly training load vs sleep for the last 3 months."
+
+## Client setup
+
+The server speaks stdio, so any MCP client works. `pip install garmin-local-mcp`
+first (or use the `uvx` variants below, which need nothing installed beyond
+[uv](https://docs.astral.sh/uv/)).
+
+**Claude Code**
+
+```
+claude mcp add --scope user garmin -- garmin-local-mcp serve
+```
+
+**Claude Desktop, one-click:** download `garmin-local-mcp-x.y.z.mcpb` from the
+[latest release](https://github.com/anup-shesh/garmin-local-mcp/releases/latest)
+and double-click it (or drag it into Claude Desktop's Settings > Extensions).
+No Python setup needed; Claude Desktop's bundled uv runtime handles it.
+
+**Claude Desktop, manual** (Settings, then Developer, then Edit Config; add to
+`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "garmin": {
+      "command": "garmin-local-mcp",
+      "args": ["serve"]
+    }
+  }
+}
+```
+
+**Cursor** (`~/.cursor/mcp.json`, or `.cursor/mcp.json` in a project):
+
+```json
+{
+  "mcpServers": {
+    "garmin": {
+      "command": "garmin-local-mcp",
+      "args": ["serve"]
+    }
+  }
+}
+```
+
+**Any other stdio client / no local install** (requires uv):
+
+```json
+{
+  "mcpServers": {
+    "garmin": {
+      "command": "uvx",
+      "args": ["garmin-local-mcp", "serve"]
+    }
+  }
+}
+```
+
+Note: `login` and the initial backfill `sync` are CLI steps (see
+[Quickstart](#quickstart)); the MCP server itself never prompts for
+credentials.
 
 ## The 12 tools
 

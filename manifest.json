@@ -1,0 +1,76 @@
+{
+  "manifest_version": "0.3",
+  "name": "garmin-local-mcp",
+  "display_name": "Garmin Local MCP",
+  "version": "0.1.1",
+  "description": "Local-first Garmin data warehouse with an analysis-grade MCP server. Sync once, analyze forever, even when the API is down.",
+  "long_description": "Syncs your Garmin Connect data incrementally into a local warehouse you own (immutable raw JSON plus SQLite), then answers analytical questions with 12 curated tools that compute trends, correlations, personal baselines, and anomalies server-side and return compact tables instead of raw API dumps. All analysis keeps working offline when Garmin's unofficial API breaks, and a zero-auth FIT importer ingests manually exported wellness bundles with no login at all.\n\nNote: the one-time `login` and the initial history backfill are CLI steps. After installing this extension, run `uvx garmin-local-mcp login` and `uvx garmin-local-mcp sync --from <date>` in a terminal once. See the README for details.",
+  "author": {
+    "name": "Anup Shesh",
+    "url": "https://github.com/anup-shesh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anup-shesh/garmin-local-mcp"
+  },
+  "homepage": "https://github.com/anup-shesh/garmin-local-mcp",
+  "documentation": "https://github.com/anup-shesh/garmin-local-mcp#readme",
+  "support": "https://github.com/anup-shesh/garmin-local-mcp/issues",
+  "license": "MIT",
+  "keywords": [
+    "garmin",
+    "garmin-connect",
+    "health",
+    "fitness",
+    "sleep",
+    "hrv",
+    "quantified-self",
+    "local-first",
+    "sqlite"
+  ],
+  "server": {
+    "type": "uv",
+    "entry_point": "garmin_mcp",
+    "mcp_config": {
+      "command": "uvx",
+      "args": [
+        "--python",
+        "3.12",
+        "garmin-local-mcp",
+        "serve"
+      ],
+      "env": {
+        "GARMIN_MCP_DATA_DIR": "${user_config.data_dir}"
+      }
+    }
+  },
+  "user_config": {
+    "data_dir": {
+      "type": "directory",
+      "title": "Data directory",
+      "description": "Where your synced Garmin data lives (raw JSON snapshots, SQLite warehouse, and login tokens). Use the same directory the CLI uses.",
+      "default": "${HOME}/.garmin-mcp",
+      "required": false
+    }
+  },
+  "tools": [
+    { "name": "auth_status", "description": "Check whether stored Garmin Connect tokens exist" },
+    { "name": "sync", "description": "Fetch up to 60 days from Garmin Connect into the local store" },
+    { "name": "sync_status", "description": "Local data coverage per table, last sync time, pending errors" },
+    { "name": "get_day", "description": "One merged view of a single day: wellness, sleep, HRV, training, activities" },
+    { "name": "query_metrics", "description": "Columnar time series for metrics between two dates, with aggregation" },
+    { "name": "correlate", "description": "Pearson/Spearman correlation between two metrics, with day-lag support" },
+    { "name": "baselines", "description": "Personal mean and sd band per metric over a trailing window" },
+    { "name": "anomalies", "description": "Outlier days (z-score) and sustained streaks vs personal baseline" },
+    { "name": "list_activities", "description": "Recent activities as a compact table, filterable" },
+    { "name": "get_activity", "description": "Full stored summary row for one activity" },
+    { "name": "gaps", "description": "Missing days per table plus unresolved sync errors" },
+    { "name": "import_fit", "description": "Zero-auth offline ingest of an exported Garmin wellness FIT bundle" }
+  ],
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "python": ">=3.12"
+    }
+  }
+}
