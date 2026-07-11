@@ -19,3 +19,6 @@ tokens/
 .DS_Store
 Thumbs.db
 *.mcpb
+
+# Local tooling (mcp-publisher binary)
+.tools/
