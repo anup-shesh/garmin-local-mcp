@@ -68,9 +68,6 @@
     { "name": "import_fit", "description": "Zero-auth offline ingest of an exported Garmin wellness FIT bundle" }
   ],
   "compatibility": {
-    "platforms": ["darwin", "win32", "linux"],
-    "runtimes": {
-      "python": ">=3.12"
-    }
+    "platforms": ["darwin", "win32", "linux"]
   }
 }
