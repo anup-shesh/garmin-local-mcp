@@ -103,7 +103,8 @@ then in Claude Desktop open Settings > Extensions > Advanced settings, click
 "Install Extension…", and select the file. Requires
 [uv](https://docs.astral.sh/uv/getting-started/installation/) on your PATH;
 the extension installs and runs the server from PyPI via uvx, so no manual
-Python setup is needed.
+Python setup is needed. If the install dialog warns about a missing
+`Python >=3.12`, you can ignore it: uv provisions its own interpreter.
 
 **Claude Desktop, manual** (Settings, then Developer, then Edit Config; add to
 `claude_desktop_config.json`):
