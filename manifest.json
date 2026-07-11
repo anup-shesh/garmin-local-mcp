@@ -4,7 +4,7 @@
   "display_name": "Garmin Local MCP",
   "version": "0.1.1",
   "description": "Local-first Garmin data warehouse with an analysis-grade MCP server. Sync once, analyze forever, even when the API is down.",
-  "long_description": "Syncs your Garmin Connect data incrementally into a local warehouse you own (immutable raw JSON plus SQLite), then answers analytical questions with 12 curated tools that compute trends, correlations, personal baselines, and anomalies server-side and return compact tables instead of raw API dumps. All analysis keeps working offline when Garmin's unofficial API breaks, and a zero-auth FIT importer ingests manually exported wellness bundles with no login at all.\n\nNote: the one-time `login` and the initial history backfill are CLI steps. After installing this extension, run `uvx garmin-local-mcp login` and `uvx garmin-local-mcp sync --from <date>` in a terminal once. See the README for details.",
+  "long_description": "Syncs your Garmin Connect data incrementally into a local warehouse you own (immutable raw JSON plus SQLite), then answers analytical questions with 12 curated tools that compute trends, correlations, personal baselines, and anomalies server-side and return compact tables instead of raw API dumps. All analysis keeps working offline when Garmin's unofficial API breaks, and a zero-auth FIT importer ingests manually exported wellness bundles with no login at all.\n\nRequires [uv](https://docs.astral.sh/uv/getting-started/installation/) on your PATH; the extension installs and runs the server from PyPI via uvx, no manual Python setup.\n\nNote: the one-time `login` and the initial history backfill are CLI steps. After installing this extension, run `uvx garmin-local-mcp login` and `uvx garmin-local-mcp sync --from <date>` in a terminal once. See the README for details.",
   "author": {
     "name": "Anup Shesh",
     "url": "https://github.com/anup-shesh"
@@ -29,13 +29,13 @@
     "sqlite"
   ],
   "server": {
-    "type": "uv",
+    "type": "python",
     "entry_point": "garmin_mcp",
     "mcp_config": {
       "command": "uvx",
       "args": [
         "--python",
-        "3.12",
+        ">=3.12",
         "garmin-local-mcp",
         "serve"
       ],
