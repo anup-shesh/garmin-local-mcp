@@ -16,3 +16,5 @@ server.json
 **/__pycache__
 src
 pyproject.toml
+Dockerfile
+glama.json
