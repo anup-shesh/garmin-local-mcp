@@ -98,9 +98,10 @@ claude mcp add --scope user garmin -- garmin-local-mcp serve
 ```
 
 **Claude Desktop, one-click:** download `garmin-local-mcp-x.y.z.mcpb` from the
-[latest release](https://github.com/anup-shesh/garmin-local-mcp/releases/latest)
-and double-click it (or drag it into Claude Desktop's Settings > Extensions).
-No Python setup needed; Claude Desktop's bundled uv runtime handles it.
+[latest release](https://github.com/anup-shesh/garmin-local-mcp/releases/latest),
+then in Claude Desktop open Settings > Extensions > Advanced settings, click
+"Install Extension…", and select the file. No Python setup needed; Claude
+Desktop's bundled uv runtime handles it.
 
 **Claude Desktop, manual** (Settings, then Developer, then Edit Config; add to
 `claude_desktop_config.json`):
