@@ -8,11 +8,46 @@ No path in this project is ever hardcoded to a machine-specific location.
 from __future__ import annotations
 
 import os
+import sys
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
 DEFAULT_DATA_DIR = Path.home() / ".garmin-mcp"
+
+
+def _resolve_path(raw: str | os.PathLike) -> Path | None:
+    """Resolve a configured path that may contain host template variables.
+
+    MCP hosts are supposed to expand ``${HOME}``-style variables in extension
+    config before launching the server, but some pass them through literally
+    (Claude Desktop on Windows, where HOME is also typically unset — the server
+    then tries to mkdir a directory literally named ``${HOME}`` and fails with
+    Access is denied). Returns None for empty values or values that still
+    contain an unexpanded ``${...}`` placeholder, so callers fall back to the
+    default instead.
+    """
+    text = os.fspath(raw).strip()
+    if not text:
+        return None
+    text = text.replace("${HOME}", str(Path.home()))
+    text = os.path.expandvars(text)
+    if "${" in text:
+        return None
+    return Path(text).expanduser()
+
+
+def _resolve_path_or_default(raw: str | os.PathLike, source: str) -> Path:
+    resolved = _resolve_path(raw)
+    if resolved is None:
+        # stderr only: stdout is the MCP transport.
+        print(
+            f"garmin-mcp: ignoring {source}={os.fspath(raw)!r} "
+            f"(empty or unexpanded template variable); using {DEFAULT_DATA_DIR}",
+            file=sys.stderr,
+        )
+        return DEFAULT_DATA_DIR
+    return resolved
 
 VALID_UNITS = ("metric", "statute")
 
@@ -40,7 +75,11 @@ class Config:
     @property
     def tokens_dir(self) -> Path:
         env = os.environ.get("GARMINTOKENS")
-        return Path(env).expanduser() if env else self.data_dir / "tokens"
+        if env:
+            resolved = _resolve_path(env)
+            if resolved is not None:
+                return resolved
+        return self.data_dir / "tokens"
 
     def ensure_dirs(self) -> None:
         self.data_dir.mkdir(parents=True, exist_ok=True)
@@ -57,9 +96,10 @@ def _read_toml(path: Path) -> dict:
 def load(data_dir: str | os.PathLike | None = None) -> Config:
     """Load config. `data_dir` argument (e.g. from --data-dir) beats the env var."""
     if data_dir is not None:
-        base = Path(data_dir).expanduser()
+        base = _resolve_path_or_default(data_dir, "--data-dir")
     else:
-        base = Path(os.environ.get("GARMIN_MCP_DATA_DIR", DEFAULT_DATA_DIR)).expanduser()
+        env = os.environ.get("GARMIN_MCP_DATA_DIR")
+        base = _resolve_path_or_default(env, "GARMIN_MCP_DATA_DIR") if env else DEFAULT_DATA_DIR
 
     file_cfg = _read_toml(base / "config.toml")
 

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-07-10
+
+### Fixed
+
+- Data-dir resolution no longer fails with `[WinError 5] Access is denied: '${HOME}'`
+  when the MCP host passes manifest template variables through unexpanded
+  (observed with the Claude Desktop extension on Windows, where `HOME` is
+  typically unset). The server now expands `${HOME}` and other environment
+  variables in `GARMIN_MCP_DATA_DIR`, `--data-dir`, and `GARMINTOKENS` itself,
+  and falls back to the default (`~/.garmin-mcp`) with a stderr warning if a
+  value is empty or still contains an unexpanded `${...}` placeholder.
+
 ## [0.1.1] - 2026-07-05
 
 ### Added
