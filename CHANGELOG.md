@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-08-01
+
+### Fixed
+
+- Pin the MCP SDK to `mcp>=1.0,<2`. mcp 2.0.0 (released 2026-07-28) is a major
+  rework that removed the `mcp.server.fastmcp` module, so fresh installs (for
+  example the Claude Desktop extension running `uvx garmin-local-mcp serve`)
+  crashed on startup with `ModuleNotFoundError: No module named
+  'mcp.server.fastmcp'` and the client reported "Server disconnected".
+  Environments that already had mcp 1.x cached were unaffected. Porting to the
+  v2 API is tracked separately.
+
 ## [0.1.2] - 2026-07-10
 
 ### Fixed
@@ -60,5 +72,6 @@ Initial release.
 - Offline test suite (sanitized JSON fixtures and small FIT samples) and CI
   across Python 3.12/3.13 on Ubuntu and Windows; no live API calls in CI.
 
+[0.1.3]: https://github.com/anup-shesh/garmin-local-mcp/releases/tag/v0.1.3
 [0.1.1]: https://github.com/anup-shesh/garmin-local-mcp/releases/tag/v0.1.1
 [0.1.0]: https://github.com/anup-shesh/garmin-local-mcp/releases/tag/v0.1.0
