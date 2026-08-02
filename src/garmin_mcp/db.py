@@ -67,6 +67,10 @@ MIGRATIONS: dict[int, str] = {
       attempts INT DEFAULT 0, last_error TEXT, updated_at TEXT,
       PRIMARY KEY (endpoint, date));
     """,
+    2: """
+    ALTER TABLE training_status ADD COLUMN fitness_age REAL;
+    ALTER TABLE training_status ADD COLUMN achievable_fitness_age REAL;
+    """,
 }
 
 SCHEMA_VERSION = max(MIGRATIONS)

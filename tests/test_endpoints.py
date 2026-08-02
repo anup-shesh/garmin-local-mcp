@@ -21,7 +21,9 @@ def parse(name: str, payload, date: str = DATE):
 
 
 def test_registry():
-    assert list(ENDPOINTS) == ["usersummary", "sleep", "hrv", "training_status", "activities"]
+    assert list(ENDPOINTS) == [
+        "usersummary", "sleep", "hrv", "training_status", "fitnessage", "activities"
+    ]
     for name, endpoint in ENDPOINTS.items():
         assert endpoint.name == name
 
@@ -129,6 +131,27 @@ def test_parse_training_status():
     ]
 
 
+def test_parse_fitnessage():
+    # partial training_status contribution, floats rounded to 2 decimals
+    assert parse("fitnessage", load("fitnessage")) == [
+        (
+            "training_status",
+            {
+                "date": DATE,
+                "fitness_age": 41.23,
+                "achievable_fitness_age": 40.99,
+            },
+        )
+    ]
+
+
+def test_parse_fitnessage_missing_keys():
+    [(table, row)] = parse("fitnessage", {"fitnessAge": 41.5})
+    assert table == "training_status"
+    assert row["fitness_age"] == 41.5
+    assert row["achievable_fitness_age"] is None
+
+
 def test_parse_activities():
     assert parse("activities", load("activities")) == [
         (
@@ -173,6 +196,8 @@ def test_parse_activities_no_distance():
         ("hrv", {"userProfilePk": 100000001}),  # no hrvSummary
         ("training_status", None),
         ("training_status", {"mostRecentTrainingStatus": {"latestTrainingStatusData": {}}}),
+        ("fitnessage", None),
+        ("fitnessage", {"chronologicalAge": 45, "components": {}}),
         ("activities", None),
         ("activities", []),
     ],

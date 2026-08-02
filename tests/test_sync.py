@@ -43,6 +43,9 @@ class FakeClient:
     def get_training_status(self, date):
         return self._payload("training_status", date, None)
 
+    def get_fitnessage_data(self, date):
+        return self._payload("fitnessage", date, None)
+
     def get_activities_by_date(self, start, end):
         return self._payload("activities", start, [])
 
@@ -107,6 +110,10 @@ def test_sync_range_rows_land(config):
     assert wellness["source"] == "api"
     assert conn.execute("SELECT score FROM sleep WHERE date=?", (DAY1,)).fetchone()[0] == 82
     assert conn.execute("SELECT status FROM hrv WHERE date=?", (DAY1,)).fetchone()[0] == "balanced"
+    training = conn.execute("SELECT * FROM training_status WHERE date=?", (DAY1,)).fetchone()
+    assert training["status"] == "productive_1"  # from the training_status endpoint
+    assert training["fitness_age"] == 41.23  # fitnessage's partial merged in, nothing clobbered
+    assert training["achievable_fitness_age"] == 40.99
     activity = conn.execute("SELECT * FROM activities").fetchone()
     assert activity["activity_id"] == 90000000001
     assert activity["raw_path"] == "activities/90000000001.json"
@@ -127,7 +134,7 @@ def test_sync_range_rows_land(config):
     assert state[("activities", DAY2)] == "empty"
 
     assert report["aborted"] is None and not report["resumable"]
-    assert report["requests"] == 10  # 5 endpoints x 2 days
+    assert report["requests"] == 12  # 6 endpoints x 2 days
     assert report["endpoints"]["usersummary"] == {"ok": 1, "empty": 1, "skipped": 0, "error": 0}
 
 
@@ -225,7 +232,7 @@ def test_throttle_between_requests(config, monkeypatch):
     )
     conn = db.connect(delayed.db_path)
     run(delayed, conn, FakeClient())
-    assert sleeps == [1.5] * 9  # between requests only, not before the first
+    assert sleeps == [1.5] * 11  # between requests only, not before the first
 
 
 def test_reparse_rebuilds_identical_db(config):
@@ -239,7 +246,7 @@ def test_reparse_rebuilds_identical_db(config):
 
     conn = db.connect(config.db_path)
     report = sync.reparse(config, conn, progress=quiet)
-    assert report["daily_snapshots"] == 10
+    assert report["daily_snapshots"] == 12
     assert report["activity_snapshots"] == 1
     assert dump_db(conn) == expected
 

@@ -157,6 +157,17 @@ def test_query_metrics_stats_block(conn):
     assert stats["sd"] > 0
 
 
+def test_query_metrics_fitness_age(conn):
+    db.upsert(
+        conn,
+        "training_status",
+        {"date": day(0), "fitness_age": 41.23, "achievable_fitness_age": 40.99},
+        ("date",),
+    )
+    res = analysis.query_metrics(conn, ["fitness_age", "achievable_fitness_age"], day(0), day(0))
+    assert res["rows"] == [[day(0), 41.23, 40.99]]
+
+
 def test_query_metrics_categorical_daily_ok_but_not_aggregable(conn):
     res = analysis.query_metrics(conn, ["hrv_status"], day(0), day(2))
     assert res["rows"][0] == [day(0), "balanced"]

@@ -54,6 +54,8 @@ _METRICS = [
     Metric("vo2max", "training_status", "vo2max"),
     Metric("acute_load", "training_status", "acute_load"),
     Metric("load_ratio", "training_status", "load_ratio"),
+    Metric("fitness_age", "training_status", "fitness_age"),
+    Metric("achievable_fitness_age", "training_status", "achievable_fitness_age"),
     # activities (aggregated per day)
     Metric("activity_count", "activities", "COUNT(*)"),
     Metric("activity_duration_s", "activities", "SUM(duration_s)"),

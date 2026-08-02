@@ -35,6 +35,25 @@ def test_migrate_idempotent(tmp_path):
     assert count == len(db.MIGRATIONS)
 
 
+def test_migration_v2_adds_fitness_age_columns(tmp_path):
+    conn = _connect(tmp_path)
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(training_status)")}
+    assert {"fitness_age", "achievable_fitness_age"} <= cols
+    assert db.SCHEMA_VERSION == 2
+    # data written after migration survives a re-open (migrations never re-apply)
+    db.upsert(
+        conn,
+        "training_status",
+        {"date": "2026-07-01", "vo2max": 47.3, "fitness_age": 41.23},
+        ("date",),
+    )
+    conn.close()
+    conn = db.connect(tmp_path / "test.db")
+    row = conn.execute("SELECT * FROM training_status").fetchone()
+    assert row["vo2max"] == 47.3 and row["fitness_age"] == 41.23
+    assert row["achievable_fitness_age"] is None
+
+
 def test_upsert_overwrites_non_key_cols(tmp_path):
     conn = _connect(tmp_path)
     row = {"date": "2026-07-01", "resting_hr": 56, "steps": 5000, "source": "api"}

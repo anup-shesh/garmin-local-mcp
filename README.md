@@ -172,9 +172,9 @@ directory. The server never prompts: auth problems come back as structured
 errors with a hint pointing at the login CLI.
 
 Available metric names include `resting_hr`, `sleep_score`, `hrv`, `steps`,
-`stress_avg`, `body_battery_high`, `skin_temp_dev_c`, `vo2max`,
-`training_load`, and about 25 more; any tool given an unknown name returns the
-full list.
+`stress_avg`, `body_battery_high`, `skin_temp_dev_c`, `vo2max`, `fitness_age`,
+`achievable_fitness_age`, `training_load`, and about 25 more; any tool given
+an unknown name returns the full list.
 
 ## Data layout and ownership
 

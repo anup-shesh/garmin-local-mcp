@@ -57,6 +57,10 @@ def _lower(v: Any) -> str | None:
     return v.lower() if isinstance(v, str) else None
 
 
+def _round2(v: Any) -> float | None:
+    return None if v is None else round(v, 2)
+
+
 def _iso_local(epoch_ms: Any) -> str | None:
     """Garmin '...TimestampLocal' epoch-ms values are already wall-clock local."""
     if epoch_ms is None:
@@ -202,6 +206,30 @@ def parse_training_status(payload: Any, date: str) -> list[ParsedRow]:
     return [("training_status", row)]
 
 
+# --- fitnessage -> training_status (partial) --------------------------------
+
+
+def fetch_fitnessage(client: Any, date: str) -> Any:
+    return client.get_fitnessage_data(date)
+
+
+def parse_fitnessage(payload: Any, date: str) -> list[ParsedRow]:
+    if not isinstance(payload, dict):
+        return []
+    # Partial row: contributes two columns to training_status without touching
+    # what the training_status endpoint wrote (or will write) - the same
+    # mechanism sleep uses for skin_temp_dev_c in daily_wellness. Component
+    # breakdowns (rhr, bmi, vigorous minutes) stay in the raw snapshot.
+    row = {
+        "date": date,
+        "fitness_age": _round2(payload.get("fitnessAge")),
+        "achievable_fitness_age": _round2(payload.get("achievableFitnessAge")),
+    }
+    if not _has_data(row):
+        return []
+    return [("training_status", row)]
+
+
 # --- activities -> activities ------------------------------------------------
 
 
@@ -261,6 +289,7 @@ ENDPOINTS: dict[str, Endpoint] = {
         Endpoint("sleep", fetch_sleep, parse_sleep),
         Endpoint("hrv", fetch_hrv, parse_hrv),
         Endpoint("training_status", fetch_training_status, parse_training_status),
+        Endpoint("fitnessage", fetch_fitnessage, parse_fitnessage),
         Endpoint("activities", fetch_activities, parse_activities),
     )
 }

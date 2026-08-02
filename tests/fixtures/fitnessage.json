@@ -1,0 +1,13 @@
+{
+ "chronologicalAge": 45,
+ "fitnessAge": 41.23456789012345,
+ "achievableFitnessAge": 40.98765432109876,
+ "previousFitnessAge": 41.23456789012345,
+ "components": {
+  "vigorousDaysAvg": {"value": 1.5, "targetValue": 3, "potentialValue": 3, "priority": 1, "improvable": true, "stale": false},
+  "rhr": {"value": 55, "targetValue": 52, "potentialValue": 52, "priority": 2, "improvable": true, "stale": false},
+  "vigorousMinutesAvg": {"value": 48.2, "targetValue": 75, "potentialValue": 75, "priority": 3, "improvable": true, "stale": false},
+  "bmi": {"value": 23.4, "targetValue": 22.5, "potentialValue": 22.5, "priority": 4, "improvable": true, "stale": false}
+ },
+ "lastUpdated": "2026-01-14T00:00:00.0"
+}
