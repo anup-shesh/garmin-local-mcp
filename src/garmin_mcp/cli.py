@@ -131,6 +131,54 @@ def cmd_import_fit(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_demo(args: argparse.Namespace) -> int:
+    from . import db, demo
+
+    config = args.config
+    if config.db_path.is_file():
+        conn = db.connect(config.db_path)
+        # Never overwrite real data. A demo store may be regenerated freely.
+        generated = demo.is_demo(conn)
+        conn.close()
+        if not generated and not args.force:
+            print(
+                f"{config.db_path} already exists and does not look like a demo store.\n"
+                f"Refusing to overwrite real data. Use a separate directory:\n"
+                f"  garmin-local-mcp --data-dir ~/.garmin-mcp-demo demo\n"
+                f"or pass --force if you are certain.",
+                file=sys.stderr,
+            )
+            return 2
+        config.db_path.unlink()
+        for suffix in ("-wal", "-shm"):
+            sidecar = config.db_path.with_name(config.db_path.name + suffix)
+            sidecar.unlink(missing_ok=True)
+
+    config.ensure_dirs()
+    conn = db.connect(config.db_path)
+    try:
+        report = demo.generate(conn, days=args.days, end=args.end, seed=args.seed)
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        return 2
+    finally:
+        # Windows will not let the next run unlink the file otherwise.
+        conn.close()
+
+    total = sum(report["rows"].values())
+    print(f"Generated a demo store at {config.db_path}")
+    print(f"  {report['days']} days, {report['start']} .. {report['end']}, {total} rows")
+    for table, count in report["rows"].items():
+        print(f"    {table:16} {count:5}")
+    ill_start, ill_end = report["illness_window"]
+    print(f"  seeded illness window: {ill_start} .. {ill_end}")
+    print(f"  sleep nights left missing: {', '.join(report['missing_sleep'])}")
+    print("\nThis data is generated, not recorded. Try:")
+    print(f"  garmin-local-mcp --data-dir {config.data_dir} status")
+    print(f"  garmin-local-mcp --data-dir {config.data_dir} serve   # then ask an MCP client")
+    return 0
+
+
 def cmd_reparse(args: argparse.Namespace) -> int:
     from . import db, sync
 
@@ -183,6 +231,19 @@ def build_parser() -> argparse.ArgumentParser:
         "--force", action="store_true", help="Overwrite even rows sourced from the API"
     )
     p.set_defaults(func=cmd_import_fit)
+
+    from .demo import DEMO_DAYS, DEMO_SEED
+
+    p = sub.add_parser(
+        "demo", help="Seed a synthetic store so the tools can be tried without a Garmin account"
+    )
+    p.add_argument("--days", type=int, default=DEMO_DAYS, help="Days to generate")
+    p.add_argument("--end", metavar="DATE", help="Last day (default: yesterday)")
+    p.add_argument("--seed", type=int, default=DEMO_SEED, help="Deterministic seed")
+    p.add_argument(
+        "--force", action="store_true", help="Overwrite an existing non-demo database"
+    )
+    p.set_defaults(func=cmd_demo)
 
     p = sub.add_parser("reparse", help="Rebuild the database from raw snapshots (offline)")
     p.set_defaults(func=cmd_reparse)

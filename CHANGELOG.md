@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `demo` command: seeds a synthetic 180-day store so the analysis tools can be
+  evaluated without a Garmin account, a login, or a network connection. The
+  data is generated but internally coherent — a latent recovery factor drives
+  HRV and resting heart rate in opposite directions, training load raises the
+  following day's resting heart rate, and a six-day illness window plus a few
+  missing sleep nights give `anomalies` and `gaps` something real to find.
+  Deterministic per `--seed`; `--days` sets the range. Refuses to overwrite a
+  database it did not generate, and `sync_status` reports `demo_store: true`
+  so an assistant cannot present generated values as real measurements.
+- README demo GIF, rendered by `scripts/render_demo_gif.py`.
+
 ## [0.1.4] - 2026-08-02
 
 ### Added

@@ -42,6 +42,38 @@ This project inverts the architecture:
 | Zero-auth ingest path | Yes (FIT bundle import) | No |
 | Tool count | 12 curated | Often 20 to 110+ |
 
+## Try it without a Garmin account
+
+If you don't own a Garmin, or just want to see what the tools return before
+handing over credentials, seed a synthetic store:
+
+```
+pip install garmin-local-mcp
+garmin-local-mcp --data-dir ~/.garmin-mcp-demo demo
+garmin-local-mcp --data-dir ~/.garmin-mcp-demo serve
+```
+
+That generates 180 days across every table, then serves them over MCP. No
+login, no network, no account.
+
+The data is generated rather than recorded, but it is not random. A latent
+recovery factor drives HRV up while resting heart rate goes down, training
+load raises the *next* day's resting heart rate, a six-day illness window sits
+in the middle of the range, and a few sleep nights are deliberately missing. So
+the analysis tools have something real to find:
+
+| Ask | Returns |
+|---|---|
+| `correlate(hrv, resting_hr)` | about −0.5, a genuine inverse relationship |
+| `correlate(training_load, resting_hr, scan_lags=True)` | ~0 at lag 0, **+0.45 at lag 1** — the effect is next-day |
+| `anomalies()` | the illness window, flagged across resting HR, HRV, skin temperature, SpO2 and sleep score at once |
+| `gaps()` | the missing sleep nights |
+
+`sync_status` reports `demo_store: true` on these stores, so an assistant can
+never present generated numbers as real measurements. The generator is
+deterministic — `--seed` reproduces a store exactly, and `--days` changes the
+range. `demo` refuses to overwrite a database it did not generate.
+
 ## Quickstart
 
 Requires Python 3.12+.
