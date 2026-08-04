@@ -18,3 +18,5 @@ src
 pyproject.toml
 Dockerfile
 glama.json
+docs
+scripts

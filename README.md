@@ -5,6 +5,8 @@
 **Local-first Garmin data warehouse with an analysis-grade MCP server.**
 Sync once, analyze forever, even when the API is down.
 
+![garmin-local-mcp answering questions from a local store, including with the network disconnected](https://raw.githubusercontent.com/anup-shesh/garmin-local-mcp/main/docs/demo.gif)
+
 ## Why another Garmin MCP?
 
 Every existing Garmin MCP server follows the same design: a thin live wrapper
