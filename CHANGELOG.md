@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `.mcpbignore` now excludes `.tools/`, the local `mcp-publisher` binary. It
+  was ignored by git but not by `mcpb pack`, so the 0.1.3 and 0.1.4 extension
+  bundles shipped a 20 MB Go binary the server never uses: 15 MB where 9 kB
+  was needed. The 0.1.5 bundle is built with the fix.
+
 ## [0.1.5] - 2026-08-26
 
 ### Added

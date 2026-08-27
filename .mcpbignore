@@ -2,6 +2,7 @@
 .git
 .github
 .python
+.tools
 .venv
 .pytest_cache
 .ruff_cache
