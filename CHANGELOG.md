@@ -5,7 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.6] - 2026-09-02
+
+### Added
+
+- Performance scores: four new sync endpoints — `endurance_score`,
+  `hill_score`, `training_readiness` and `race_predictions` — feeding a new
+  `performance` table (schema migration v3) with `endurance_score`,
+  `endurance_class`, `hill_score`, `hill_endurance_score`,
+  `hill_strength_score`, `readiness_score`, `readiness_level`,
+  `recovery_time_min` and `race_5k_s` / `race_10k_s` / `race_half_s` /
+  `race_marathon_s`. All twelve are registered as query metrics, surfaced by
+  `get_day` under a `performance` key, and counted by `sync_status`.
+
+  The table is deliberately absent from the `gaps` daily-table set: these
+  scores update on Garmin's own cadence, so a day without a new endurance
+  score is normal rather than a hole.
+
+  `training_readiness` prefers the post-wake (`AFTER_WAKEUP_RESET`) snapshot —
+  the reading Garmin shows in the Morning Report — and falls back to the first
+  entry on firmware that leaves `inputContext` unset. Every parser drops a
+  payload stamped with a different `calendarDate`, because metrics-service can
+  answer an out-of-range date with the latest reading instead of an empty one.
+
+  All four payload shapes are verified against live metrics-service responses.
+  Endurance score's `classification` field turned out to be an opaque integer
+  enum, so the tier label is instead derived from the
+  `classificationLowerLimit<Tier>` ladder carried in the same payload —
+  yielding `intermediate`, `trained`, `well_trained`, `expert`, `superior`,
+  `elite`, or `below_intermediate` for a score under the lowest rung. Each
+  parser still accepts a couple of alternate spellings as insurance against
+  firmware variation, and writes nothing when none match, so an unexpected
+  shape yields an empty row rather than a fabricated one.
 
 ### Fixed
 

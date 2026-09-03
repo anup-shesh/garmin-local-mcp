@@ -46,6 +46,18 @@ class FakeClient:
     def get_fitnessage_data(self, date):
         return self._payload("fitnessage", date, None)
 
+    def get_endurance_score(self, startdate, enddate=None):
+        return self._payload("endurance_score", startdate, None)
+
+    def get_hill_score(self, startdate, enddate=None):
+        return self._payload("hill_score", startdate, None)
+
+    def get_training_readiness(self, date):
+        return self._payload("training_readiness", date, [])
+
+    def get_race_predictions(self, startdate=None, enddate=None, _type=None):
+        return self._payload("race_predictions", startdate, [])
+
     def get_activities_by_date(self, start, end):
         return self._payload("activities", start, [])
 
@@ -134,7 +146,7 @@ def test_sync_range_rows_land(config):
     assert state[("activities", DAY2)] == "empty"
 
     assert report["aborted"] is None and not report["resumable"]
-    assert report["requests"] == 12  # 6 endpoints x 2 days
+    assert report["requests"] == 20  # 10 endpoints x 2 days
     assert report["endpoints"]["usersummary"] == {"ok": 1, "empty": 1, "skipped": 0, "error": 0}
 
 
@@ -232,7 +244,8 @@ def test_throttle_between_requests(config, monkeypatch):
     )
     conn = db.connect(delayed.db_path)
     run(delayed, conn, FakeClient())
-    assert sleeps == [1.5] * 11  # between requests only, not before the first
+    # 10 endpoints x 2 days, minus the one before the first request
+    assert sleeps == [1.5] * 19
 
 
 def test_reparse_rebuilds_identical_db(config):
@@ -246,7 +259,7 @@ def test_reparse_rebuilds_identical_db(config):
 
     conn = db.connect(config.db_path)
     report = sync.reparse(config, conn, progress=quiet)
-    assert report["daily_snapshots"] == 12
+    assert report["daily_snapshots"] == 20
     assert report["activity_snapshots"] == 1
     assert dump_db(conn) == expected
 

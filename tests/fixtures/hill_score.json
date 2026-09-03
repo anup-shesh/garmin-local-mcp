@@ -1,0 +1,13 @@
+{
+ "calendarDate": "2026-01-15",
+ "deviceId": 3608148099,
+ "enduranceScore": 18,
+ "hillScoreClassificationId": 2,
+ "hillScoreFeedbackPhraseId": 43,
+ "overallScore": 30,
+ "primaryTrainingDevice": true,
+ "strengthScore": 4,
+ "userProfilePK": 135114088,
+ "vo2Max": 46.0,
+ "vo2MaxPreciseValue": 46.1
+}

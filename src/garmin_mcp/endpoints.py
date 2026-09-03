@@ -8,6 +8,7 @@ parser bug never loses data - `reparse` re-runs these functions offline.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -25,6 +26,7 @@ TABLE_KEYS: dict[str, tuple[str, ...]] = {
     "hrv": ("date",),
     "training_status": ("date",),
     "activities": ("activity_id",),
+    "performance": ("date",),
 }
 
 
@@ -230,6 +232,188 @@ def parse_fitnessage(payload: Any, date: str) -> list[ParsedRow]:
     return [("training_status", row)]
 
 
+# --- performance metrics -> performance --------------------------------------
+#
+# Four Garmin "how fit am I" scores that update on their own cadence rather than
+# every day. They share one table because they are all per-day scalars and a
+# reader almost always wants them together; `performance` is deliberately absent
+# from analysis._DAILY_TABLES, because a day without a new endurance score is
+# normal and must not be reported as a gap.
+#
+# KEY-NAME PROVENANCE: all four payload shapes are now VERIFIED against live
+# metrics-service responses (2026-08-30). The alternate spellings each parser
+# still accepts are kept as cheap insurance against firmware variation; a
+# payload matching none of them yields an empty row rather than a fabricated
+# one, and because raw payloads are snapshotted before parsing, `reparse`
+# rebuilds every historical row offline if a shape ever changes.
+#
+# One shape is worth knowing: endurance score's `classification` is an opaque
+# integer enum, so the tier label is derived from the `classificationLowerLimit*`
+# ladder in the same payload instead - see _endurance_class.
+
+
+def _first(obj: Any, *keys: str) -> Any:
+    """First non-None value among `keys`; tolerates a non-dict payload."""
+    if not isinstance(obj, dict):
+        return None
+    for key in keys:
+        value = obj.get(key)
+        if value is not None:
+            return value
+    return None
+
+
+def _payload_matches_date(payload: Any, date: str) -> bool:
+    """False only when the payload names a *different* calendar date.
+
+    Several metrics-service endpoints ignore an out-of-range calendarDate and
+    return the most recent reading instead. Writing that under the requested
+    date would silently backdate a score, so those responses are dropped.
+    """
+    stamped = _first(payload, "calendarDate", "calendar_date")
+    return not (isinstance(stamped, str) and stamped[:10] != date)
+
+
+_TIER_PREFIX = "classificationLowerLimit"
+
+
+def _snake(name: str) -> str:
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+
+def _endurance_class(payload: dict, score: int | None) -> str | None:
+    """Name the tier from the ladder Garmin ships alongside the score.
+
+    The response's own `classification` field is an opaque integer enum, but the
+    same payload carries one `classificationLowerLimit<Tier>` key per tier
+    (Intermediate/Trained/WellTrained/Expert/Superior/Elite), so the label can be
+    derived from the score rather than guessing what the enum means. A score
+    under the lowest rung is reported as `below_<lowest tier>` instead of being
+    silently dropped.
+    """
+    if score is None:
+        return None
+    tiers = sorted(
+        (limit, key[len(_TIER_PREFIX) :])
+        for key, limit in payload.items()
+        if key.startswith(_TIER_PREFIX) and isinstance(limit, int | float)
+    )
+    if not tiers:
+        # Some firmware may send a plain string; fall back to it.
+        return _lower(payload.get("classification"))
+    label = None
+    for limit, name in tiers:
+        if score < limit:
+            break
+        label = name
+    return _snake(label) if label else f"below_{_snake(tiers[0][1])}"
+
+
+def fetch_endurance_score(client: Any, date: str) -> Any:
+    # Single date (no enddate) returns that day's precise values; a range would
+    # return weekly aggregates, which do not belong on a per-day row.
+    return client.get_endurance_score(date)
+
+
+def parse_endurance_score(payload: Any, date: str) -> list[ParsedRow]:
+    if not isinstance(payload, dict) or not _payload_matches_date(payload, date):
+        return []
+    score = _int(_first(payload, "overallScore", "enduranceScore", "score"))
+    row = {
+        "date": date,
+        "endurance_score": score,
+        "endurance_class": _endurance_class(payload, score),
+    }
+    if not _has_data(row):
+        return []
+    return [("performance", row)]
+
+
+def fetch_hill_score(client: Any, date: str) -> Any:
+    return client.get_hill_score(date)
+
+
+def parse_hill_score(payload: Any, date: str) -> list[ParsedRow]:
+    if not isinstance(payload, dict) or not _payload_matches_date(payload, date):
+        return []
+    row = {
+        "date": date,
+        "hill_score": _int(_first(payload, "overallScore", "hillScore", "score")),
+        "hill_endurance_score": _int(_first(payload, "enduranceScore", "hillEnduranceScore")),
+        "hill_strength_score": _int(_first(payload, "strengthScore", "hillStrengthScore")),
+    }
+    if not _has_data(row):
+        return []
+    return [("performance", row)]
+
+
+def fetch_training_readiness(client: Any, date: str) -> Any:
+    return client.get_training_readiness(date)
+
+
+def parse_training_readiness(payload: Any, date: str) -> list[ParsedRow]:
+    # The endpoint returns a list of snapshots (one per wake-up/scheduled
+    # update); a few responses hand back a bare dict. Prefer the post-wake
+    # reading, which is the score Garmin shows in the Morning Report, and fall
+    # back to the first entry - mirroring get_morning_training_readiness.
+    if isinstance(payload, dict):
+        snapshot = payload
+    elif isinstance(payload, list):
+        entries = [item for item in payload if isinstance(item, dict)]
+        if not entries:
+            return []
+        snapshot = next(
+            (e for e in entries if e.get("inputContext") == "AFTER_WAKEUP_RESET"),
+            entries[0],
+        )
+    else:
+        return []
+    if not _payload_matches_date(snapshot, date):
+        return []
+    row = {
+        "date": date,
+        "readiness_score": _int(snapshot.get("score")),
+        "readiness_level": _lower(snapshot.get("level")),
+        "recovery_time_min": _int(snapshot.get("recoveryTime")),
+    }
+    if not _has_data(row):
+        return []
+    return [("performance", row)]
+
+
+def fetch_race_predictions(client: Any, date: str) -> Any:
+    # 'daily' over a single-day range keeps one row per calendar date; the
+    # no-argument form would return "latest", which is undated and would be
+    # written under whatever day happened to be syncing.
+    return client.get_race_predictions(date, date, _type="daily")
+
+
+def parse_race_predictions(payload: Any, date: str) -> list[ParsedRow]:
+    # Range form returns a list; be tolerant of a single dict.
+    if isinstance(payload, dict):
+        entry: Any = payload
+    elif isinstance(payload, list):
+        entries = [item for item in payload if isinstance(item, dict)]
+        entry = next(
+            (e for e in entries if str(_first(e, "calendarDate") or "")[:10] == date),
+            entries[0] if len(entries) == 1 else None,
+        )
+    else:
+        return []
+    if entry is None or not _payload_matches_date(entry, date):
+        return []
+    row = {
+        "date": date,
+        "race_5k_s": _int(_first(entry, "time5K", "raceTime5K")),
+        "race_10k_s": _int(_first(entry, "time10K", "raceTime10K")),
+        "race_half_s": _int(_first(entry, "timeHalfMarathon", "raceTimeHalfMarathon")),
+        "race_marathon_s": _int(_first(entry, "timeMarathon", "raceTimeMarathon")),
+    }
+    if not _has_data(row):
+        return []
+    return [("performance", row)]
+
+
 # --- activities -> activities ------------------------------------------------
 
 
@@ -290,6 +474,10 @@ ENDPOINTS: dict[str, Endpoint] = {
         Endpoint("hrv", fetch_hrv, parse_hrv),
         Endpoint("training_status", fetch_training_status, parse_training_status),
         Endpoint("fitnessage", fetch_fitnessage, parse_fitnessage),
+        Endpoint("endurance_score", fetch_endurance_score, parse_endurance_score),
+        Endpoint("hill_score", fetch_hill_score, parse_hill_score),
+        Endpoint("training_readiness", fetch_training_readiness, parse_training_readiness),
+        Endpoint("race_predictions", fetch_race_predictions, parse_race_predictions),
         Endpoint("activities", fetch_activities, parse_activities),
     )
 }

@@ -28,7 +28,7 @@ from .config import Config
 SYNC_MAX_DAYS = 60
 DEFAULT_RANGE_DAYS = 30
 
-_TABLES = ("daily_wellness", "sleep", "hrv", "training_status", "activities")
+_TABLES = ("daily_wellness", "sleep", "hrv", "training_status", "performance", "activities")
 
 mcp = FastMCP("garmin")
 

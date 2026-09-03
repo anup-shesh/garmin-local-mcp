@@ -71,6 +71,15 @@ MIGRATIONS: dict[int, str] = {
     ALTER TABLE training_status ADD COLUMN fitness_age REAL;
     ALTER TABLE training_status ADD COLUMN achievable_fitness_age REAL;
     """,
+    3: """
+    CREATE TABLE performance (
+      date TEXT PRIMARY KEY,
+      endurance_score INT, endurance_class TEXT,
+      hill_score INT, hill_endurance_score INT, hill_strength_score INT,
+      readiness_score INT, readiness_level TEXT, recovery_time_min INT,
+      race_5k_s INT, race_10k_s INT, race_half_s INT, race_marathon_s INT,
+      fetched_at TEXT);
+    """,
 }
 
 SCHEMA_VERSION = max(MIGRATIONS)

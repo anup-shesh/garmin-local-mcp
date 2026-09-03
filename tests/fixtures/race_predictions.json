@@ -1,0 +1,22 @@
+[
+ {
+  "userProfilePk": 1234567,
+  "fromCalendarDate": "2026-01-14",
+  "toCalendarDate": "2026-01-14",
+  "calendarDate": "2026-01-14",
+  "time5K": 1512,
+  "time10K": 3178,
+  "timeHalfMarathon": 7044,
+  "timeMarathon": 14820
+ },
+ {
+  "userProfilePk": 1234567,
+  "fromCalendarDate": "2026-01-15",
+  "toCalendarDate": "2026-01-15",
+  "calendarDate": "2026-01-15",
+  "time5K": 1498,
+  "time10K": 3145,
+  "timeHalfMarathon": 6972,
+  "timeMarathon": 14655
+ }
+]

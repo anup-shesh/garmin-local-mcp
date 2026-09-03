@@ -22,7 +22,9 @@ def parse(name: str, payload, date: str = DATE):
 
 def test_registry():
     assert list(ENDPOINTS) == [
-        "usersummary", "sleep", "hrv", "training_status", "fitnessage", "activities"
+        "usersummary", "sleep", "hrv", "training_status", "fitnessage",
+        "endurance_score", "hill_score", "training_readiness", "race_predictions",
+        "activities",
     ]
     for name, endpoint in ENDPOINTS.items():
         assert endpoint.name == name
@@ -185,10 +187,132 @@ def test_parse_activities_no_distance():
     assert row["date"] == DATE  # falls back to the sync date without startTimeLocal
 
 
+def test_parse_endurance_score():
+    """`classification` is an opaque int; the tier is derived from the ladder."""
+    assert parse("endurance_score", load("endurance_score")) == [
+        ("performance", {"date": DATE, "endurance_score": 7350, "endurance_class": "expert"})
+    ]
+
+
+@pytest.mark.parametrize(
+    ("score", "expected"),
+    [
+        (4900, "below_intermediate"),  # under the lowest rung, not dropped
+        (5100, "intermediate"),  # exactly on a boundary counts as that tier
+        (6700, "well_trained"),  # CamelCase tier names become snake_case
+        (8800, "elite"),
+        (12000, "elite"),  # above the top rung stays at the top tier
+    ],
+)
+def test_endurance_class_is_derived_from_the_threshold_ladder(score, expected):
+    payload = load("endurance_score") | {"overallScore": score}
+    [(_, row)] = parse("endurance_score", payload)
+    assert row["endurance_class"] == expected
+
+
+def test_endurance_class_falls_back_to_a_string_classification():
+    """No ladder in the payload: use `classification` if it is a plain string."""
+    payload = {"calendarDate": DATE, "overallScore": 7350, "classification": "EXPERT"}
+    [(_, row)] = parse("endurance_score", payload)
+    assert row["endurance_class"] == "expert"
+
+
+def test_parse_hill_score():
+    assert parse("hill_score", load("hill_score")) == [
+        (
+            "performance",
+            {
+                "date": DATE,
+                "hill_score": 30,
+                "hill_endurance_score": 18,
+                "hill_strength_score": 4,
+            },
+        )
+    ]
+
+
+def test_parse_training_readiness_prefers_the_post_wake_snapshot():
+    """The list holds a later scheduled update; the morning reading is the score."""
+    assert parse("training_readiness", load("training_readiness")) == [
+        (
+            "performance",
+            {
+                "date": DATE,
+                "readiness_score": 71,
+                "readiness_level": "high",
+                "recovery_time_min": 90,
+            },
+        )
+    ]
+
+
+def test_parse_training_readiness_falls_back_to_first_entry():
+    """Firmware that never sets inputContext still yields a row."""
+    payload = [{"calendarDate": DATE, "score": 44, "level": "LOW", "recoveryTime": 600}]
+    [(_, row)] = parse("training_readiness", payload)
+    assert row["readiness_score"] == 44 and row["recovery_time_min"] == 600
+
+
+def test_parse_race_predictions_picks_the_requested_date():
+    """The daily range form returns neighbouring days too; only DATE is stored."""
+    assert parse("race_predictions", load("race_predictions")) == [
+        (
+            "performance",
+            {
+                "date": DATE,
+                "race_5k_s": 1498,
+                "race_10k_s": 3145,
+                "race_half_s": 6972,
+                "race_marathon_s": 14655,
+            },
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    ("name", "payload", "expected"),
+    [
+        # Alternate spellings, because these three payload shapes are inferred
+        # rather than verified - see the provenance note in endpoints.py.
+        ("endurance_score", {"enduranceScore": 7350}, ("endurance_score", 7350)),
+        ("hill_score", {"hillScore": 42}, ("hill_score", 42)),
+        ("race_predictions", {"raceTime5K": 1498}, ("race_5k_s", 1498)),
+    ],
+)
+def test_parse_accepts_alternate_key_spellings(name, payload, expected):
+    [(table, row)] = parse(name, payload)
+    assert table == "performance"
+    assert row[expected[0]] == expected[1]
+
+
+@pytest.mark.parametrize(
+    ("name", "payload"),
+    [
+        ("endurance_score", {"calendarDate": "2025-12-01", "overallScore": 7350}),
+        ("hill_score", {"calendarDate": "2025-12-01", "overallScore": 42}),
+        ("training_readiness", [{"calendarDate": "2025-12-01", "score": 71}]),
+    ],
+)
+def test_parse_rejects_a_payload_stamped_with_another_date(name, payload):
+    """metrics-service can answer an out-of-range date with the latest reading."""
+    assert parse(name, payload) == []
+
+
 @pytest.mark.parametrize(
     ("name", "payload"),
     [
         ("usersummary", None),
+        ("endurance_score", None),
+        ("endurance_score", {}),
+        ("endurance_score", {"calendarDate": DATE}),  # stamped, but no score
+        ("hill_score", None),
+        ("hill_score", {"userProfilePK": 1234567}),
+        ("training_readiness", None),
+        ("training_readiness", []),
+        ("training_readiness", [{"calendarDate": DATE}]),
+        ("race_predictions", None),
+        ("race_predictions", []),
+        ("race_predictions", [{"calendarDate": "2025-12-01", "time5K": 1512}]),
         ("usersummary", {"privacyProtected": None}),
         ("sleep", None),
         ("sleep", {"dailySleepDTO": {"id": None, "calendarDate": None}}),

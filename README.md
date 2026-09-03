@@ -191,7 +191,7 @@ credentials.
 | `auth_status` | Check whether stored Garmin Connect tokens exist (use before sync, or after an auth error). |
 | `sync` | Fetch up to 60 days from Garmin Connect into the local store (default: last 30 days ending yesterday; big backfills belong in the CLI). |
 | `sync_status` | Local data coverage per table, last sync time, and pending sync errors. |
-| `get_day` | One merged view of a single day: wellness, sleep, HRV, training status, activities, and data-quality flags. |
+| `get_day` | One merged view of a single day: wellness, sleep, HRV, training status, performance scores, activities, and data-quality flags. |
 | `query_metrics` | Columnar time series for one or more metrics between two dates, with daily/weekly/monthly aggregation and optional stats. |
 | `correlate` | Pearson/Spearman correlation between two metrics, with day-lag support and an optional scan over lags -7..+7. |
 | `baselines` | Personal mean +/- sd band per metric over a trailing window (default 28 days), to judge what is normal for this user. |
@@ -207,8 +207,22 @@ errors with a hint pointing at the login CLI.
 
 Available metric names include `resting_hr`, `sleep_score`, `hrv`, `steps`,
 `stress_avg`, `body_battery_high`, `skin_temp_dev_c`, `vo2max`, `fitness_age`,
-`achievable_fitness_age`, `training_load`, and about 25 more; any tool given
-an unknown name returns the full list.
+`achievable_fitness_age`, `training_load`, `endurance_score`, `hill_score`,
+`readiness_score`, `race_5k_s`, and about 35 more; any tool given an unknown
+name returns the full list.
+
+### Performance scores
+
+Garmin's periodic fitness scores land in their own `performance` table:
+endurance score, hill score (with its endurance and strength sub-scores),
+training readiness (score, level, recovery time) and race predictions for 5k,
+10k, half and full marathon (all in seconds).
+
+These update on Garmin's own cadence rather than daily, so `performance` is
+deliberately excluded from `gaps` — a day without a new endurance score is
+normal, not a hole. Race predictions and hill score only move after qualifying
+running activity, so long stretches of nulls are expected for anyone whose
+training is mostly hiking, cycling or strength work.
 
 ## Data layout and ownership
 

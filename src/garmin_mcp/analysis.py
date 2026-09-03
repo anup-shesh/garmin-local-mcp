@@ -453,6 +453,7 @@ def get_day(conn: sqlite3.Connection, date: str) -> dict:
         "sleep": sleep,
         "hrv": row_slice("hrv"),
         "training": row_slice("training_status"),
+        "performance": row_slice("performance"),
         "activities": activities,
         "flags": flags,
     }
