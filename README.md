@@ -7,41 +7,6 @@ Sync once, analyze forever, even when the API is down.
 
 ![garmin-local-mcp answering questions from a local store, including with the network disconnected](https://raw.githubusercontent.com/anup-shesh/garmin-local-mcp/main/docs/demo.gif)
 
-## Why another Garmin MCP?
-
-Every existing Garmin MCP server follows the same design: a thin live wrapper
-around Garmin's rate-limited, unofficial API. Each question your AI assistant
-asks becomes one or more live API calls that return huge raw JSON blobs (a
-single raw sleep response runs around 230 KB). Multi-month questions like "how
-does my sleep correlate with training load?" are impractical, and when Garmin
-changes its auth (as it did in March 2026, breaking the whole ecosystem), those
-servers go completely dark, even for data they already fetched yesterday.
-
-This project inverts the architecture:
-
-- **Sync once, analyze forever.** Incremental sync into a local warehouse:
-  immutable raw JSON snapshots plus a SQLite database, in a directory you own.
-- **Server-side analysis, compact responses.** Trends, correlations, personal
-  baselines, and anomaly detection are computed locally and returned as small
-  columnar tables in a single tool call. Typical responses are under 2 KB, so
-  nothing floods the model's context.
-- **Offline resilience.** An API breakage pauses new syncs only. Every query
-  over already-synced history keeps working.
-- **A zero-auth fallback.** A standalone decoder for Garmin's undocumented
-  wellness FIT messages (sleep score, HRV, skin temperature, sleep stages,
-  naps) ingests manually exported bundles with no login at all. No other
-  Garmin MCP ships this.
-- **Curated tools.** 12 composable tools, not 110.
-
-| | garmin-local-mcp | Typical API-wrapper Garmin MCPs |
-|---|---|---|
-| Local data store you own | Yes (raw JSON + SQLite) | No |
-| Works offline after an API breakage | Yes (analysis over synced history) | No |
-| Server-side analysis (trends, correlations, baselines, anomalies) | Yes | No (raw JSON pass-through) |
-| Response size discipline | Compact columnar tables, typically < 2 KB | Raw payloads, up to hundreds of KB |
-| Zero-auth ingest path | Yes (FIT bundle import) | No |
-| Tool count | 12 curated | Often 20 to 110+ |
-
 ## Try it without a Garmin account
 
 If you don't own a Garmin, or just want to see what the tools return before
@@ -73,6 +38,50 @@ the analysis tools have something real to find:
 never present generated numbers as real measurements. The generator is
 deterministic — `--seed` reproduces a store exactly, and `--days` changes the
 range. `demo` refuses to overwrite a database it did not generate.
+
+## Why another Garmin MCP?
+
+Most Garmin MCP servers are thin live wrappers around Garmin's unofficial API.
+Every question your AI assistant asks becomes one or more live API calls
+returning large raw JSON blobs (a single raw sleep response runs around 230 KB),
+which makes multi-month questions like "how does my sleep correlate with
+training load?" expensive to ask.
+
+That design is no longer universal. Since Garmin's auth change in March 2026
+broke the ecosystem for several weeks, a number of projects have added local
+storage, and the largest server computes training-load and HRV trends
+server-side. Data ownership and server-side analysis are both crowded ground
+now. Two things are not:
+
+- **Ingest that needs no login.** A standalone decoder for Garmin's undocumented
+  wellness FIT messages (sleep score, HRV, skin temperature, sleep stages, naps)
+  reads manually exported bundles with no credentials at all. Other servers
+  parse FIT *activity* files; I have not found another that decodes the wellness
+  export. It is the only ingest path here that keeps working when Garmin auth
+  breaks.
+- **Correlation with lag.** Pearson and Spearman between any two metrics with a
+  scan over -7 to +7 day lags, so "training load raises my resting HR the next
+  day" is a question with an answer.
+
+The rest of the design follows from keeping your own copy:
+
+- **Sync once, analyze forever.** Incremental sync into a local warehouse:
+  immutable raw JSON snapshots plus a SQLite database, in a directory you own.
+- **Compact responses.** Trends, correlations, baselines and anomaly detection
+  are computed locally and returned as small columnar tables. Typical responses
+  are under 2 KB, so nothing floods the model's context.
+- **Offline resilience.** An API breakage pauses new syncs only. Every query
+  over already-synced history keeps working, and FIT import keeps filling gaps.
+- **Curated tools.** 12 composable tools, not 110.
+
+| | garmin-local-mcp | Most other Garmin MCPs |
+|---|---|---|
+| Zero-auth ingest path | Yes (wellness FIT bundle import) | No |
+| Lag-aware correlation (-7 to +7 days) | Yes | No |
+| Response size discipline | Compact columnar tables, typically < 2 KB | Raw payloads; the largest server documents skipping its detail endpoint at 50-500 KB |
+| Works offline after an API breakage | Yes, analysis plus FIT ingest | Varies; some keep a local cache |
+| Local data store you own | Yes (raw JSON + SQLite) | Several now do this too |
+| Tool count | 12 curated | 18 to 148 |
 
 ## Quickstart
 
