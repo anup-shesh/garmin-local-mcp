@@ -206,7 +206,9 @@ def correlate(
     """Pearson/Spearman correlation between two metrics (default: last 30 days).
 
     Positive lag_days pairs metric_a on day D with metric_b on D+lag;
-    scan_lags=True searches lags -7..+7 for the strongest relationship.
+    scan_lags=True searches lags -7..+7 for the strongest relationship and
+    returns it with a Bonferroni-adjusted p-value; if that is >= 0.05, `note`
+    says the lag may be chance and a wider range is needed.
     """
     cfg = _cfg()
     start, end = _default_range(cfg, start, end)

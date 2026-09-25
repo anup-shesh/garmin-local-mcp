@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.7] - 2026-09-25
+
+### Changed
+
+- `correlate(scan_lags=True)` now judges the strongest lag against all 15 lags
+  it tested. `best_lag` carries its `n` and a Bonferroni-adjusted
+  `p_adjusted`, and when that is 0.05 or higher, `note` says the lag may be
+  chance and suggests a wider range. Previously a scan over a short window
+  could report a spurious lag with no warning: on the demo store's default
+  30-day window, 14 paired days produced lag -7, r = -0.59 (p_adjusted 0.38).
+- Demo store: the planted next-day training-load effect on resting HR is
+  stronger (0.018 to 0.026 bpm per load unit), so the lag scan's lag-1 result
+  is significant after correction (r = 0.47 over 93 training days) instead of
+  borderline (r = 0.30, p_adjusted 0.053).
+- `demo` now prints the store's full date range and notes that the analysis
+  tools default to the last 30 days, which miss the illness window.
+
+### Fixed
+
+- README demo table: the lag-1 figure said +0.45 while the store produced
+  +0.30, and the anomaly row listed SpO2 (not flagged in the illness window)
+  while omitting stress. Both now match the generated store, and the table
+  says it describes the full 180-day range.
+
 ## [0.1.6] - 2026-09-02
 
 ### Added
@@ -139,6 +163,8 @@ Initial release.
 - Offline test suite (sanitized JSON fixtures and small FIT samples) and CI
   across Python 3.12/3.13 on Ubuntu and Windows; no live API calls in CI.
 
+[0.1.7]: https://github.com/anup-shesh/garmin-local-mcp/releases/tag/v0.1.7
+[0.1.6]: https://github.com/anup-shesh/garmin-local-mcp/releases/tag/v0.1.6
 [0.1.5]: https://github.com/anup-shesh/garmin-local-mcp/releases/tag/v0.1.5
 [0.1.4]: https://github.com/anup-shesh/garmin-local-mcp/releases/tag/v0.1.4
 [0.1.3]: https://github.com/anup-shesh/garmin-local-mcp/releases/tag/v0.1.3

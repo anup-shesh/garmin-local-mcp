@@ -209,6 +209,25 @@ def test_correlate_scan_lags_finds_the_planted_lag(conn):
     assert res["best_lag"]["r"] > 0.95
     # at lag 0 the relationship is much weaker than at the true lag
     assert abs(res["pearson_r"]) < res["best_lag"]["r"]
+    # a real lag survives the correction for scanning 15 lags, so no caution
+    assert res["best_lag"]["n"] == 28
+    assert res["best_lag"]["p_adjusted"] < 0.05
+    assert res["note"] is None
+
+
+def test_correlate_scan_flags_best_lag_that_may_be_chance(conn):
+    # steps and hrv are unrelated here; whatever lag wins on 10 days is noise
+    res = analysis.correlate(conn, "steps", "hrv", day(10), day(19), scan_lags=True)
+    assert res["best_lag"]["p_adjusted"] >= 0.05
+    assert "may be chance" in res["note"]
+    assert "15 lags" in res["note"]
+
+
+def test_corr_p_value():
+    assert analysis._corr_p_value(0.0, 30) == pytest.approx(1.0)
+    assert analysis._corr_p_value(1.0, 10) == 0.0
+    # r = 0.5, n = 30: z = atanh(0.5) * sqrt(27) = 2.854, two-sided p = 0.0043
+    assert analysis._corr_p_value(0.5, 30) == pytest.approx(0.0043, abs=1e-4)
 
 
 def test_correlate_too_few_points(conn):

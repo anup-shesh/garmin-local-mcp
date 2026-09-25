@@ -35,6 +35,9 @@ _DAILY_TABLES = ("daily_wellness", "sleep", "hrv")
 _MIN_CORR_N = 5
 _MIN_STREAK_LEN = 5
 _SCAN_LAG_RANGE = range(-7, 8)
+# A scanned best_lag whose Bonferroni-adjusted p is at or above this gets a
+# note saying it may be chance.
+_SCAN_ALPHA = 0.05
 
 
 # --- small helpers -----------------------------------------------------------
@@ -85,6 +88,14 @@ def _pearson(xs: list[float], ys: list[float]) -> float | None:
         return None
     sxy = sum((x - mx) * (y - my) for x, y in zip(xs, ys, strict=True))
     return sxy / math.sqrt(sxx * syy)
+
+
+def _corr_p_value(r: float, n: int) -> float:
+    """Two-sided p-value for a Pearson r via the Fisher z-transform (n >= 4)."""
+    if abs(r) >= 1.0:
+        return 0.0
+    z = math.atanh(r) * math.sqrt(n - 3)
+    return math.erfc(abs(z) / math.sqrt(2))
 
 
 def _ranks(values: list[float]) -> list[float]:
@@ -240,7 +251,8 @@ def correlate(
 
     A positive lag pairs metric_a on day D with metric_b on day D+lag (a leads
     b). scan_lags additionally tries lags -7..+7 and reports the strongest
-    |pearson| as best_lag.
+    |pearson| as best_lag, with its n and a Bonferroni-adjusted p-value; a
+    best_lag that is not significant after adjustment gets a note.
     """
     ma, mb = resolve(metric_a), resolve(metric_b)
     _require_numeric(ma, "correlate")
@@ -274,13 +286,29 @@ def correlate(
 
     best_lag = None
     if scan_lags:
+        best_r = 0.0
         for lag in _SCAN_LAG_RANGE:
             lxs, lys = pairs(lag)
             if len(lxs) < _MIN_CORR_N:
                 continue
             r = _pearson(lxs, lys)
-            if r is not None and (best_lag is None or abs(r) > abs(best_lag["r"])):
-                best_lag = {"lag": lag, "r": round(r, 3)}
+            if r is not None and (best_lag is None or abs(r) > abs(best_r)):
+                best_r = r
+                best_lag = {"lag": lag, "r": round(r, 3), "n": len(lxs)}
+        # The strongest of 15 lags is picked after the fact, so judge it against
+        # all 15 tests (Bonferroni) rather than as if it were the only one.
+        if best_lag is not None:
+            p_adj = min(1.0, _corr_p_value(best_r, best_lag["n"]) * len(_SCAN_LAG_RANGE))
+            best_lag["p_adjusted"] = round(p_adj, 4)
+            if p_adj >= _SCAN_ALPHA:
+                caution = (
+                    f"best_lag is the strongest of {len(_SCAN_LAG_RANGE)} lags tested on "
+                    f"{best_lag['n']} paired days and is not significant once all "
+                    f"{len(_SCAN_LAG_RANGE)} are accounted for (p_adjusted "
+                    f"{best_lag['p_adjusted']}), so it may be chance; a wider date "
+                    "range gives a firmer answer"
+                )
+                note = f"{note}; {caution}" if note else caution
 
     return {
         "n": len(xs),

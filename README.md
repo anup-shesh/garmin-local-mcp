@@ -25,14 +25,19 @@ The data is generated rather than recorded, but it is not random. A latent
 recovery factor drives HRV up while resting heart rate goes down, training
 load raises the *next* day's resting heart rate, a six-day illness window sits
 in the middle of the range, and a few sleep nights are deliberately missing. So
-the analysis tools have something real to find:
+the analysis tools have something real to find. Over the full 180 days:
 
 | Ask | Returns |
 |---|---|
 | `correlate(hrv, resting_hr)` | about −0.5, a genuine inverse relationship |
-| `correlate(training_load, resting_hr, scan_lags=True)` | ~0 at lag 0, **+0.45 at lag 1** — the effect is next-day |
-| `anomalies()` | the illness window, flagged across resting HR, HRV, skin temperature, SpO2 and sleep score at once |
+| `correlate(training_load, resting_hr, scan_lags=True)` | ~0 at lag 0, **+0.47 at lag 1** (93 training days, significant after correcting for the 15 lags scanned): the effect is next-day |
+| `anomalies()` | the illness window, flagged across resting HR, HRV, skin temperature, sleep score and stress at once |
 | `gaps()` | the missing sleep nights |
+
+The analysis tools default to the last 30 days, which misses the illness
+window, so ask about the whole range (`demo` prints it). On a short window a
+lag scan has little to work with; `correlate` says so in its `note` when the
+strongest lag is not significant once all 15 lags are accounted for.
 
 `sync_status` reports `demo_store: true` on these stores, so an assistant can
 never present generated numbers as real measurements. The generator is

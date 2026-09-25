@@ -176,6 +176,10 @@ def cmd_demo(args: argparse.Namespace) -> int:
     print("\nThis data is generated, not recorded. Try:")
     print(f"  garmin-local-mcp --data-dir {config.data_dir} status")
     print(f"  garmin-local-mcp --data-dir {config.data_dir} serve   # then ask an MCP client")
+    print(
+        "\nAnalysis tools default to the last 30 days, which misses the illness"
+        f"\nwindow. Ask about the whole range ({report['start']} .. {report['end']})."
+    )
     return 0
 
 

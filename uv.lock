@@ -305,7 +305,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/61/ed/5637fe96c56d55dfa
 
 [[package]]
 name = "garmin-local-mcp"
-version = "0.1.6"
+version = "0.1.7"
 source = { editable = "." }
 dependencies = [
     { name = "fitparse" },

@@ -135,7 +135,7 @@ def generate(
         resting_hr = (
             _RHR_BASE
             - 2.4 * recovery
-            + 0.018 * prev_load
+            + 0.026 * prev_load
             + (5.0 if sick else 0.0)
             + rng.gauss(0, 2.4)
         )

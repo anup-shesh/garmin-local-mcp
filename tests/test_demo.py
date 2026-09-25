@@ -94,7 +94,10 @@ def test_analysis_tools_find_real_structure(tmp_path):
         conn, "training_load", "resting_hr", start, end, scan_lags=True
     )
     assert load_rhr["best_lag"]["lag"] == 1
-    assert load_rhr["best_lag"]["r"] > 0.2
+    assert load_rhr["best_lag"]["r"] > 0.4
+    # ...and it holds up after correcting for the 15 lags scanned.
+    assert load_rhr["best_lag"]["p_adjusted"] < 0.05
+    assert load_rhr["note"] is None
 
     # The seeded illness window is detectable across several metrics at once.
     found = analysis.anomalies(conn, None, start, end)["anomalies"]
