@@ -18,8 +18,10 @@ from contextlib import closing
 from datetime import date as date_type
 from datetime import timedelta
 from pathlib import Path
+from typing import Annotated
 
 from mcp.server.fastmcp import FastMCP
+from pydantic import Field
 
 from . import analysis, auth, config, db, demo, importer
 from . import circadian as circadian_mod
@@ -256,22 +258,60 @@ def anomalies(
 @mcp.tool()
 @_tool_errors
 def circadian(
-    start: str | None = None,
-    end: str | None = None,
-    free_days: list[str] | None = None,
-    outcome: str | None = None,
-    sleep_need_min: int | None = None,
-    detail: bool = False,
+    start: Annotated[
+        str | None,
+        Field(description="First wake date, YYYY-MM-DD. Default: 180 days before end."),
+    ] = None,
+    end: Annotated[
+        str | None, Field(description="Last wake date, YYYY-MM-DD. Default: yesterday.")
+    ] = None,
+    free_days: Annotated[
+        list[str] | None,
+        Field(description=(
+            "Weekdays whose mornings are alarm-free, as mon..sun. Default "
+            '["sat", "sun"]; use e.g. ["fri", "sat"] for a Friday-Saturday weekend.'
+        )),
+    ] = None,
+    outcome: Annotated[
+        str | None,
+        Field(description=(
+            "Garmin score to test against: readiness_score, sleep_score or "
+            "body_battery_high. Default: readiness_score, else sleep_score."
+        )),
+    ] = None,
+    sleep_need_min: Annotated[
+        int | None,
+        Field(description=(
+            "Your sleep need in minutes of time in bed, 240 to 720 (e.g. 480 for "
+            "8 h). Overrides the estimate from free-night sleep; useful when "
+            "weekends are spent catching up."
+        )),
+    ] = None,
+    detail: Annotated[
+        bool,
+        Field(description=(
+            "Add the wake-time bins, the sensitivity grid, per-fold model errors "
+            "and bootstrap diagnostics (output up to about 6 KB)."
+        )),
+    ] = False,
 ) -> dict:
-    """Chronotype (MCTQ MSFsc), sleep need, and an inferred circadian-compatible
-    wake window, each with an 80% interval; plus out-of-sample evidence on
-    whether waking near that window is associated with higher Garmin outcome
-    scores (readiness or sleep score), beyond sleep duration and regularity.
-    Evidence levels describe consistency on unseen nights, not statistical
-    significance. Default: last 180 days.
+    """Estimate when this user's body clock wants them to wake up, and test that
+    estimate against their own Garmin history. Read-only: analyses synced
+    sleep times locally and changes nothing.
 
-    free_days defaults to ["sat", "sun"]; outcome to readiness_score, else
-    sleep_score; detail=True adds bins, the sensitivity grid and fold table.
+    Use for "am I a morning person?", "what time should I wake up?" or "what
+    bedtime fits me?". For whether a single night or metric was normal, use
+    baselines or get_day; for a relationship between two metrics, correlate.
+
+    Returns three separate estimates, each with an 80% interval: chronotype
+    (MCTQ MSFsc, mid-sleep on free days corrected for catch-up sleep), sleep
+    need, and an inferred wake window with bedtime. Also: stability across
+    reasonable settings, and evidence from a rolling holdout on whether waking
+    near the window went with higher Garmin scores beyond sleep duration and
+    regularity (consistent / supportive / suggestive / unsupported; these
+    describe consistency on unseen nights, not statistical significance), plus
+    a plain-language interpretation and notes. Needs 28+ nights with sleep
+    times; evidence needs 180+ days of history. Takes well under a second.
     """
     cfg = _cfg()
     end = end or sync_engine.yesterday(cfg)

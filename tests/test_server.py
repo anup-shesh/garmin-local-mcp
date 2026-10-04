@@ -168,3 +168,16 @@ def test_circadian_tool(data_dir):
     assert out["recommendation"]["agreement"] == "formula_only"
     assert "error" in server.circadian(start=BASE.isoformat(), end=BASE.isoformat())
     json.dumps(out)  # JSON-serialisable for the MCP transport
+
+
+def test_circadian_schema_documents_every_parameter():
+    import asyncio
+
+    tools = {t.name: t for t in asyncio.run(server.mcp.list_tools())}
+    tool = tools["circadian"]
+    props = tool.inputSchema["properties"]
+    assert set(props) == {"start", "end", "free_days", "outcome", "sleep_need_min", "detail"}
+    for name, prop in props.items():
+        assert prop.get("description"), f"{name} has no description"
+    assert "Read-only" in tool.description
+    assert "YYYY-MM-DD" in props["start"]["description"]
