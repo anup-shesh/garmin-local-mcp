@@ -1,4 +1,4 @@
-"""FastMCP stdio server: 12 compact tools over the local warehouse.
+"""FastMCP stdio server: 13 compact tools over the local warehouse.
 
 Responses are deliberately compact (typically well under 2KB): columnar
 tables, server-side aggregates, and row caps instead of raw API payloads, so
@@ -22,11 +22,13 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 from . import analysis, auth, config, db, demo, importer
+from . import circadian as circadian_mod
 from . import sync as sync_engine
 from .config import Config
 
 SYNC_MAX_DAYS = 60
 DEFAULT_RANGE_DAYS = 30
+CIRCADIAN_RANGE_DAYS = 180
 
 _TABLES = ("daily_wellness", "sleep", "hrv", "training_status", "performance", "activities")
 
@@ -249,6 +251,38 @@ def anomalies(
     start, end = _default_range(cfg, start, end)
     with closing(_connect(cfg)) as conn:
         return analysis.anomalies(conn, metrics, start, end, z)
+
+
+@mcp.tool()
+@_tool_errors
+def circadian(
+    start: str | None = None,
+    end: str | None = None,
+    free_days: list[str] | None = None,
+    outcome: str | None = None,
+    sleep_need_min: int | None = None,
+    detail: bool = False,
+) -> dict:
+    """Chronotype (MCTQ MSFsc), sleep need, and an inferred circadian-compatible
+    wake window, each with an 80% interval; plus out-of-sample evidence on
+    whether waking near that window is associated with higher Garmin outcome
+    scores (readiness or sleep score), beyond sleep duration and regularity.
+    Evidence levels describe consistency on unseen nights, not statistical
+    significance. Default: last 180 days.
+
+    free_days defaults to ["sat", "sun"]; outcome to readiness_score, else
+    sleep_score; detail=True adds bins, the sensitivity grid and fold table.
+    """
+    cfg = _cfg()
+    end = end or sync_engine.yesterday(cfg)
+    if start is None:
+        start = (
+            date_type.fromisoformat(end) - timedelta(days=CIRCADIAN_RANGE_DAYS - 1)
+        ).isoformat()
+    with closing(_connect(cfg)) as conn:
+        return circadian_mod.circadian(
+            conn, start, end, free_days, outcome, sleep_need_min, detail, cfg.timezone
+        )
 
 
 @mcp.tool()

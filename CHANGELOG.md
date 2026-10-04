@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2026-10-04
+
+### Added
+
+- `circadian` tool: chronotype (MCTQ MSFsc, sleep-debt corrected), sleep need
+  and an inferred circadian-compatible wake window, each with an 80% interval
+  from a week-block bootstrap. A sensitivity grid (90/180/365 days, mean and
+  median mid-sleep, three travel-filter widths) reports how stable the answer
+  is. A rolling holdout compares seven least-squares models on unseen nights,
+  including duration-only, regularity-only and an outcome-learned wake optimum,
+  and reports an evidence level (`consistent`, `supportive`, `suggestive`,
+  `unsupported`) that describes consistency, not statistical significance.
+  Outcomes are described as Garmin scores throughout, never physiology.
+- Sleep-timing metrics `sleep_onset_min`, `wake_time_min` and `mid_sleep_min`
+  (minutes from midnight of the wake date), usable in every query tool.
+
+### Changed
+
+- Demo store: sleep timing now carries a planted chronotype (MSFsc 03:45) and a
+  sleep-score penalty for waking far from the natural wake time, so
+  `circadian` has structure to find. Timing uses its own random stream, which
+  shifts the other demo figures slightly; the README table now gives ranges.
+
+### Fixed
+
+- Demo store: bedtimes could be written as `T24:MM:00`, an invalid time, and
+  sleep start and end times did not match the sleep duration.
+
 ## [0.1.7] - 2026-09-25
 
 ### Changed

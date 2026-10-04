@@ -46,6 +46,12 @@ _METRICS = [
     Metric("awake_min", "sleep", "awake_min"),
     Metric("restless_moments", "sleep", "restless_moments"),
     Metric("nap_min", "sleep", "nap_min"),
+    # sleep timing: minutes relative to midnight of the wake date (23:00 = -60)
+    Metric("sleep_onset_min", "sleep",
+           "ROUND((julianday(start_ts) - julianday(date)) * 1440, 1)"),
+    Metric("wake_time_min", "sleep", "ROUND((julianday(end_ts) - julianday(date)) * 1440, 1)"),
+    Metric("mid_sleep_min", "sleep",
+           "ROUND(((julianday(start_ts) + julianday(end_ts)) / 2 - julianday(date)) * 1440, 1)"),
     # hrv
     Metric("hrv", "hrv", "last_night_avg"),
     Metric("hrv_weekly", "hrv", "weekly_avg"),

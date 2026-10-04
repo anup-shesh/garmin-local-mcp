@@ -10,6 +10,11 @@ next day's resting HR, and a six-day illness window sits in the middle of the
 range. So `correlate`, `baselines` and `anomalies` return real structure rather
 than the flat nothing that random values would produce.
 
+Sleep timing carries a planted chronotype (MCTQ MSFsc about 03:45): alarm-pinned
+06:30 wakes on work nights, later and longer sleep on free nights, and a sleep
+score that drops with distance from the natural wake time (about 07:45),
+independent of duration and regularity. So `circadian` has something to find.
+
 Deterministic: the same seed always produces the same store.
 """
 
@@ -19,7 +24,7 @@ import math
 import random
 import sqlite3
 from datetime import date as date_type
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 from . import db
 
@@ -30,6 +35,15 @@ DEMO_SEED = 20260803
 _RHR_BASE = 57.0
 _HRV_BASE = 34.0
 _VO2_START, _VO2_END = 43.5, 47.0
+
+# Planted sleep timing (minutes after midnight of the wake date). Free nights
+# wake 08:06 after 480 min, work nights 06:30 after 420 min, so MSF = 04:06 and
+# the MCTQ debt correction brings MSFsc to about 03:45; MSFsc + 480 / 2 puts the
+# natural wake at about 07:45, where the score penalty is zero.
+_WORK_WAKE, _WORK_WINDOW = 390.0, 420.0
+_FREE_WAKE, _FREE_WINDOW = 486.0, 480.0
+_NATURAL_WAKE = 465.0
+_WAKE_PENALTY_PER_MIN = 0.15
 
 _ILLNESS_LEN = 6
 _MISSING_SLEEP_NIGHTS = 3
@@ -61,6 +75,7 @@ def generate(
     if days < 14:
         raise ValueError(f"days must be at least 14, got {days}")
     rng = random.Random(seed)
+    trng = random.Random(seed + 1)  # sleep timing, kept off the main stream
     end_date = date_type.fromisoformat(end) if end else date_type.today() - timedelta(days=1)
     all_days = _dates(end_date, days)
 
@@ -190,31 +205,35 @@ def generate(
 
         # --- sleep -------------------------------------------------------
         if i not in missing_sleep:
-            duration = _clamp(rng.gauss(420, 45) - (25 if sick else 0), 210, 560)
+            free = weekday >= 5
+            wake_min = trng.gauss(_FREE_WAKE if free else _WORK_WAKE, 30 if free else 50)
+            duration = _clamp(trng.gauss(_FREE_WINDOW if free else _WORK_WINDOW, 30)
+                              - (25 if sick else 0), 240, 600)
             deep = _clamp(rng.gauss(68, 18) + 6 * recovery - (20 if sick else 0), 0, 150)
             rem = _clamp(rng.gauss(96, 24) + 4 * recovery, 20, 210)
             awake = _clamp(rng.gauss(24, 11) + (14 if sick else 0), 0, 90)
             light = _clamp(duration - deep - rem - awake, 60, 400)
             duration = deep + rem + awake + light  # keep stages summing to duration
-            bed_hour = 22 + rng.random() * 2.4
-            start_dt = day - timedelta(days=1)
+            wake_dt = datetime.combine(day, time()) + timedelta(minutes=round(wake_min))
+            onset_dt = wake_dt - timedelta(minutes=round(duration))
+            timing = (
+                0.05 * (duration - 440)
+                - _WAKE_PENALTY_PER_MIN * abs(wake_min - _NATURAL_WAKE)
+            )
             db.upsert(
                 conn,
                 "sleep",
                 {
                     "date": iso,
-                    "score": int(_clamp(78 + 7 * recovery - (16 if sick else 0)
-                                        + rng.gauss(0, 8), 20, 100)),
+                    "score": int(_clamp(82 + 7 * recovery - (16 if sick else 0) + timing
+                                        + rng.gauss(0, 6), 20, 100)),
                     "duration_min": round(duration, 1),
                     "deep_min": int(deep),
                     "light_min": int(light),
                     "rem_min": int(rem),
                     "awake_min": int(awake),
-                    "start_ts": (
-                        f"{start_dt.isoformat()}T{int(bed_hour):02d}:"
-                        f"{int(bed_hour % 1 * 60):02d}:00"
-                    ),
-                    "end_ts": f"{iso}T{6 + rng.randint(0, 2):02d}:{rng.randint(0, 59):02d}:00",
+                    "start_ts": onset_dt.isoformat(timespec="seconds"),
+                    "end_ts": wake_dt.isoformat(timespec="seconds"),
                     "avg_spo2": round(_clamp(96.8 - (1.9 if sick else 0) + rng.gauss(0, 0.6),
                                              88, 100), 1),
                     "avg_respiration": round(_clamp(14.0 + (1.3 if sick else 0)

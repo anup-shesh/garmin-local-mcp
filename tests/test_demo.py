@@ -1,4 +1,6 @@
-from garmin_mcp import analysis, db, demo
+from datetime import datetime
+
+from garmin_mcp import analysis, circadian, db, demo
 from garmin_mcp.cli import main
 
 
@@ -132,3 +134,21 @@ def test_cli_regenerates_an_existing_demo_store(tmp_path):
     assert main(["--data-dir", str(tmp_path), "demo", "--days", "40"]) == 0
     conn = db.connect(tmp_path / "garmin.db")
     assert conn.execute("SELECT COUNT(*) FROM daily_wellness").fetchone()[0] == 40
+
+
+def test_sleep_timestamps_are_valid_and_match_duration(tmp_path):
+    """The old generator could write T24:MM:00 bedtimes; start/end now follow duration."""
+    conn, _ = _store(tmp_path, days=180)
+    for row in conn.execute("SELECT start_ts, end_ts, duration_min FROM sleep"):
+        start = datetime.fromisoformat(row["start_ts"])
+        end = datetime.fromisoformat(row["end_ts"])
+        assert abs((end - start).total_seconds() / 60 - row["duration_min"]) <= 1
+
+
+def test_circadian_recovers_the_planted_chronotype(tmp_path):
+    conn, report = _store(tmp_path, days=180)
+    out = circadian.circadian(conn, report["start"], report["end"], tz_name="UTC")
+    msf_sc = out["chronotype"]["msf_sc"]
+    minutes = int(msf_sc[:2]) * 60 + int(msf_sc[3:])
+    assert abs(minutes - 225) <= 15  # planted MSFsc 03:45
+    assert out["evidence"]["level"] in ("supportive", "consistent")

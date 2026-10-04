@@ -19,6 +19,7 @@ BASE = date(2026, 6, 1)
 EXPECTED_TOOLS = {
     "auth_status", "sync", "sync_status", "get_day", "query_metrics", "correlate",
     "baselines", "anomalies", "list_activities", "get_activity", "gaps", "import_fit",
+    "circadian",
 }
 
 
@@ -145,3 +146,25 @@ def test_responses_json_serialize(data_dir):
         server.correlate("resting_hr", "sleep_score", "2026-06-01", "2026-06-30"),
     ):
         json.dumps(res)  # must be plain JSON-able
+
+
+def test_circadian_tool(data_dir):
+    conn = db.connect(data_dir / "garmin.db")
+    for i in range(56):
+        d = BASE + timedelta(days=i)
+        free = d.weekday() >= 5
+        db.upsert(conn, "sleep", {
+            "date": d.isoformat(),
+            "start_ts": f"{d.isoformat()}T00:00:00" if free
+            else f"{(d - timedelta(days=1)).isoformat()}T23:00:00",
+            "end_ts": f"{d.isoformat()}T{'08' if free else '06'}:30:00",
+            "duration_min": 510.0 if free else 450.0,
+            "source": "api",
+        }, ("date",))
+    conn.close()
+    end = (BASE + timedelta(days=55)).isoformat()
+    out = server.circadian(start=BASE.isoformat(), end=end)
+    assert out["chronotype"]["label"] in ("early", "intermediate", "late")
+    assert out["recommendation"]["agreement"] == "formula_only"
+    assert "error" in server.circadian(start=BASE.isoformat(), end=BASE.isoformat())
+    json.dumps(out)  # JSON-serialisable for the MCP transport

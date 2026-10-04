@@ -24,15 +24,20 @@ login, no network, no account.
 The data is generated rather than recorded, but it is not random. A latent
 recovery factor drives HRV up while resting heart rate goes down, training
 load raises the *next* day's resting heart rate, a six-day illness window sits
-in the middle of the range, and a few sleep nights are deliberately missing. So
-the analysis tools have something real to find. Over the full 180 days:
+in the middle of the range, and a few sleep nights are deliberately missing.
+Sleep timing carries a planted chronotype (MCTQ MSFsc 03:45, with alarm-pinned
+work mornings and later, longer free nights), and the sleep score drops with
+distance from that natural wake time. So the analysis tools have something real
+to find. Over the full 180 days (exact figures shift a little with the end
+date, because training days depend on the weekday):
 
 | Ask | Returns |
 |---|---|
-| `correlate(hrv, resting_hr)` | about −0.5, a genuine inverse relationship |
-| `correlate(training_load, resting_hr, scan_lags=True)` | ~0 at lag 0, **+0.47 at lag 1** (93 training days, significant after correcting for the 15 lags scanned): the effect is next-day |
+| `correlate(hrv, resting_hr)` | −0.4 to −0.6, a genuine inverse relationship |
+| `correlate(training_load, resting_hr, scan_lags=True)` | near 0 at lag 0, **+0.4 to +0.65 at lag 1** (90 to 100 training days, significant after correcting for the 15 lags scanned): the effect is next-day |
 | `anomalies()` | the illness window, flagged across resting HR, HRV, skin temperature, sleep score and stress at once |
 | `gaps()` | the missing sleep nights |
+| `circadian()` | MSFsc within 10 minutes of the planted 03:45, a circadian wake around 07:45, and evidence `supportive` (the most that two holdout folds allow) |
 
 The analysis tools default to the last 30 days, which misses the illness
 window, so ask about the whole range (`demo` prints it). On a short window a
@@ -56,8 +61,19 @@ That design is no longer universal. Since Garmin's auth change in March 2026
 broke the ecosystem for several weeks, a number of projects have added local
 storage, and the largest server computes training-load and HRV trends
 server-side. Data ownership and server-side analysis are both crowded ground
-now. Two things are not:
+now. Three things are not:
 
+- **Sleep-timing advice that is tested before it is given.** `circadian`
+  estimates your chronotype from your watch's sleep times (the Munich
+  Chronotype Questionnaire's sleep-debt-corrected mid-sleep) and the wake time
+  that fits it, with an 80% interval on each and a check of how much the answer
+  moves under other reasonable settings. Then it asks whether waking near that
+  time actually went with higher Garmin scores on nights the model never saw,
+  beyond what sleep duration and schedule regularity explain, and says plainly
+  when it didn't. Chronotype on its own is not new: other tools, including at
+  least one MCP server, report MCTQ-style chronotype from wearable sleep data.
+  I have not found another that puts uncertainty on the answer or validates it
+  out of sample. See [Sleep timing and chronotype](#sleep-timing-and-chronotype).
 - **Ingest that needs no login.** A standalone decoder for Garmin's undocumented
   wellness FIT messages (sleep score, HRV, skin temperature, sleep stages, naps)
   reads manually exported bundles with no credentials at all. Other servers
@@ -74,19 +90,21 @@ The rest of the design follows from keeping your own copy:
   immutable raw JSON snapshots plus a SQLite database, in a directory you own.
 - **Compact responses.** Trends, correlations, baselines and anomaly detection
   are computed locally and returned as small columnar tables. Typical responses
-  are under 2 KB, so nothing floods the model's context.
+  are under 2 KB (`circadian`, the richest, stays under 3 KB), so nothing floods
+  the model's context.
 - **Offline resilience.** An API breakage pauses new syncs only. Every query
   over already-synced history keeps working, and FIT import keeps filling gaps.
-- **Curated tools.** 12 composable tools, not 110.
+- **Curated tools.** 13 composable tools, not 110.
 
 | | garmin-local-mcp | Most other Garmin MCPs |
 |---|---|---|
 | Zero-auth ingest path | Yes (wellness FIT bundle import) | No |
 | Lag-aware correlation (-7 to +7 days) | Yes | No |
+| Chronotype and wake-time advice, validated on unseen nights | Yes (intervals, stability check, rolling holdout) | A few report chronotype; none found that validate it |
 | Response size discipline | Compact columnar tables, typically < 2 KB | Raw payloads; the largest server documents skipping its detail endpoint at 50-500 KB |
 | Works offline after an API breakage | Yes, analysis plus FIT ingest | Varies; some keep a local cache |
 | Local data store you own | Yes (raw JSON + SQLite) | Several now do this too |
-| Tool count | 12 curated | 18 to 148 |
+| Tool count | 13 curated | 18 to 148 |
 
 ## Quickstart
 
@@ -198,7 +216,7 @@ Note: `login` and the initial backfill `sync` are CLI steps (see
 [Quickstart](#quickstart)); the MCP server itself never prompts for
 credentials.
 
-## The 12 tools
+## The 13 tools
 
 | Tool | What it does |
 |---|---|
@@ -214,6 +232,7 @@ credentials.
 | `get_activity` | Full stored summary row for one activity (summary fields only, no GPS or sample streams). |
 | `gaps` | Missing days per table plus unresolved sync errors, to find holes worth re-syncing before drawing conclusions. |
 | `import_fit` | Zero-auth offline ingest of a manually exported Garmin wellness FIT bundle. |
+| `circadian` | Chronotype (MCTQ), sleep need and an inferred wake window, each with an 80% interval, plus out-of-sample evidence on whether that window goes with higher Garmin scores. See [Sleep timing and chronotype](#sleep-timing-and-chronotype). |
 
 Only `sync` and `import_fit` write anything, and only inside the data
 directory. The server never prompts: auth problems come back as structured
@@ -222,8 +241,10 @@ errors with a hint pointing at the login CLI.
 Available metric names include `resting_hr`, `sleep_score`, `hrv`, `steps`,
 `stress_avg`, `body_battery_high`, `skin_temp_dev_c`, `vo2max`, `fitness_age`,
 `achievable_fitness_age`, `training_load`, `endurance_score`, `hill_score`,
-`readiness_score`, `race_5k_s`, and about 35 more; any tool given an unknown
-name returns the full list.
+`readiness_score`, `race_5k_s`, the sleep-timing metrics `sleep_onset_min`,
+`wake_time_min` and `mid_sleep_min` (minutes from midnight of the wake date, so
+a 23:00 bedtime is −60), and about 35 more; any tool given an unknown name
+returns the full list.
 
 ### Performance scores
 
@@ -237,6 +258,50 @@ deliberately excluded from `gaps` — a day without a new endurance score is
 normal, not a hole. Race predictions and hill score only move after qualifying
 running activity, so long stretches of nulls are expected for anyone whose
 training is mostly hiking, cycling or strength work.
+
+### Sleep timing and chronotype
+
+`circadian` answers "when does my body clock want me to wake up?" from the sleep
+start and end times already in the store. It returns three separate quantities,
+each with an 80% interval from a week-block bootstrap:
+
+1. **Chronotype (`msf_sc`).** The Munich Chronotype Questionnaire measure:
+   mid-sleep on free days, corrected for the extra sleep taken to repay workday
+   debt. Labelled `early` (before 03:30), `intermediate` or `late` (after
+   04:30); the bands are approximate and the number is the main value.
+2. **Sleep need.** Your mean free-night sleep window, unless you pass
+   `sleep_need_min`. The range where your Garmin scores level off is reported
+   alongside as a cross-check.
+3. **Circadian-compatible wake window.** `msf_sc + sleep_need / 2`. This is an
+   inference, not an MCTQ output. With no catch-up sleep it is simply your
+   average free-day wake time; with catch-up sleep it is that time moved
+   earlier by half the catch-up.
+
+It then checks the inference against what actually happened:
+
+- **Stability.** The estimate is recomputed over 90, 180 and 365 days, mean and
+  median mid-sleep, and three travel-filter widths. `stability: low` usually
+  means your schedule changed; pass a `start` after the change.
+- **Evidence.** On a rolling holdout (train 120 days, test the next 30), it
+  compares a sleep-duration-only model with one that adds distance from your
+  circadian wake, and controls for schedule regularity with a separate pair of
+  models. The level is `consistent`, `supportive`, `suggestive` or
+  `unsupported`. These describe how consistently the pattern held on unseen
+  nights. They are **not** statistical significance, and evidence needs at
+  least 180 days of history.
+- **What it can't show.** Readiness and sleep score are Garmin's own composite
+  scores, not physiological measurements. The strongest possible conclusion is
+  that waking near your window was *associated with* higher Garmin scores on
+  nights the model never saw, beyond what sleep duration and regularity
+  predict. It does not show that wake timing changes physiology.
+
+When the formula and your past scores disagree by more than 30 minutes, the
+tool keeps both and suggests a 21-night experiment between them rather than
+averaging them away. Free days default to Saturday and Sunday mornings
+(`free_days` changes that), and if you set alarms on free days the chronotype
+comes out earlier than your body clock. Daylight-saving changes in the range
+are listed, using the configured `timezone` or the host's. Shift workers
+(daytime main sleep) get the rhythm and chronotype but no wake window.
 
 ## Data layout and ownership
 
